@@ -23,8 +23,8 @@ class ReadingViewController: UIViewController {
         
         // Debug: Print available fonts
         for family in UIFont.familyNames.sorted() {
-            if family.lowercased().contains("cardo") {
-                print("Font family: \(family)")
+            if family.lowercased().contains("unifraktur") || family.lowercased().contains("maguntia") {
+                print("Gothic Font family: \(family)")
                 for font in UIFont.fontNames(forFamilyName: family) {
                     print("  - \(font)")
                 }
@@ -59,7 +59,7 @@ class ReadingViewController: UIViewController {
         
         // Status bar background to prevent text showing behind status bar
         statusBarBackgroundView.translatesAutoresizingMaskIntoConstraints = false
-        statusBarBackgroundView.backgroundColor = UIColor.parchmentSolid
+        statusBarBackgroundView.backgroundColor = .black
         
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
@@ -248,7 +248,15 @@ class ReadingViewController: UIViewController {
         let dropCapLabel = UILabel()
         dropCapLabel.translatesAutoresizingMaskIntoConstraints = false
         dropCapLabel.text = firstChar
-        dropCapLabel.font = UIFont(name: "UnifrakturMaguntia-Regular", size: 56) ?? UIFont(name: "Cardo-Bold", size: 56) ?? .systemFont(ofSize: 56, weight: .bold)
+        // Try different font name variations
+        let gothicFont = UIFont(name: "UnifrakturMaguntia-Regular", size: 56) ??
+                        UIFont(name: "Unifraktur Maguntia", size: 56) ??
+                        UIFont(name: "UnifrakturMaguntia", size: 56)
+        dropCapLabel.font = gothicFont ?? UIFont(name: "Cardo-Bold", size: 56) ?? .systemFont(ofSize: 56, weight: .bold)
+        
+        // Debug print to see which font is being used
+        print("Drop cap font: \(dropCapLabel.font.fontName)")
+        
         dropCapLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0) // Dark text
         dropCapLabel.textAlignment = .center
         
