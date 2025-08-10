@@ -136,61 +136,42 @@ class ReadingViewController: UIViewController {
         guard let book = currentBook else { return }
         guard let chapter = book.chapters.first(where: { $0.number == currentChapter }) else { return }
         
-        // Update labels immediately
+        // Update labels
         bookLabel.text = book.name
         chapterLabel.text = "Chapter \(currentChapter)"
         
-        // Clear existing content immediately
+        // Clear existing content
         versesStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         
         // Check cache first
         let cacheKey = "\(book.name)_\(currentChapter)"
+        let fullText: String
+        
         if let cachedText = chapterTextCache[cacheKey] {
-            // Use cached text immediately
-            let paragraphView = createChapterParagraphView(text: cachedText)
-            versesStackView.addArrangedSubview(paragraphView)
-            scrollView.setContentOffset(.zero, animated: false)
-            
-            // Save reading position
-            UserDataManager.shared.saveReadingPosition(
-                book: book.name,
-                chapter: currentChapter,
-                scrollPosition: 0
-            )
-            
-            // Preload adjacent chapters in background
-            preloadAdjacentChapters()
+            fullText = cachedText
         } else {
-            // Load chapter content on background queue
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                // Combine all verses into a single paragraph
-                let fullText = chapter.verses.map { $0.text }.joined(separator: " ")
-                
-                DispatchQueue.main.async {
-                    guard let self = self else { return }
-                    
-                    // Cache the text
-                    self.chapterTextCache[cacheKey] = fullText
-                    
-                    // Create single paragraph view with drop cap
-                    let paragraphView = self.createChapterParagraphView(text: fullText)
-                    self.versesStackView.addArrangedSubview(paragraphView)
-                    
-                    // Scroll to top
-                    self.scrollView.setContentOffset(.zero, animated: false)
-                    
-                    // Save reading position
-                    UserDataManager.shared.saveReadingPosition(
-                        book: book.name,
-                        chapter: self.currentChapter,
-                        scrollPosition: 0
-                    )
-                    
-                    // Preload adjacent chapters
-                    self.preloadAdjacentChapters()
-                }
-            }
+            // Combine all verses into a single paragraph
+            fullText = chapter.verses.map { $0.text }.joined(separator: " ")
+            // Cache the text
+            chapterTextCache[cacheKey] = fullText
         }
+        
+        // Create single paragraph view with drop cap
+        let paragraphView = createChapterParagraphView(text: fullText)
+        versesStackView.addArrangedSubview(paragraphView)
+        
+        // Scroll to top
+        scrollView.setContentOffset(.zero, animated: false)
+        
+        // Save reading position
+        UserDataManager.shared.saveReadingPosition(
+            book: book.name,
+            chapter: currentChapter,
+            scrollPosition: 0
+        )
+        
+        // Preload adjacent chapters in background
+        preloadAdjacentChapters()
     }
     
     private func preloadAdjacentChapters() {
@@ -387,21 +368,17 @@ class ReadingViewController: UIViewController {
     
     
     private func loadLastReadingPosition() {
-        // Ensure scripture data is loaded before attempting to read
-        ScriptureManager.shared.preloadData { [weak self] in
-            guard let self = self else { return }
-            
-            if let position = UserDataManager.shared.readingPosition {
-                self.currentBook = ScriptureManager.shared.book(named: position.bookName)
-                self.currentChapter = position.chapter
-                self.loadChapter()
-            } else {
-                // Default to Genesis 1 or first available book
-                if let firstBook = ScriptureManager.shared.books.first {
-                    self.currentBook = firstBook
-                    self.currentChapter = 1
-                    self.loadChapter()
-                }
+        // Scripture data is already loaded in memory
+        if let position = UserDataManager.shared.readingPosition {
+            currentBook = ScriptureManager.shared.book(named: position.bookName)
+            currentChapter = position.chapter
+            loadChapter()
+        } else {
+            // Default to Genesis 1 or first available book
+            if let firstBook = ScriptureManager.shared.books.first {
+                currentBook = firstBook
+                currentChapter = 1
+                loadChapter()
             }
         }
     }

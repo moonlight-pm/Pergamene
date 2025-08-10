@@ -113,25 +113,21 @@ class BookSelectionViewController: UIViewController {
     }
     
     private func loadBooks() {
-        // Ensure scripture data is loaded
-        ScriptureManager.shared.preloadData { [weak self] in
-            guard let self = self else { return }
-            
-            self.books = ScriptureManager.shared.books
-            self.oldTestamentBooks = self.books.filter { $0.testament == "Old" }
-            self.newTestamentBooks = self.books.filter { $0.testament == "New" }
-            
-            // Create book buttons for Old Testament
-            for book in self.oldTestamentBooks {
-                let button = self.createBookButton(book: book)
-                self.oldTestamentStack.addArrangedSubview(button)
-            }
-            
-            // Create book buttons for New Testament
-            for book in self.newTestamentBooks {
-                let button = self.createBookButton(book: book)
-                self.newTestamentStack.addArrangedSubview(button)
-            }
+        // Scripture data is already loaded in memory
+        books = ScriptureManager.shared.books
+        oldTestamentBooks = books.filter { $0.testament == "Old" }
+        newTestamentBooks = books.filter { $0.testament == "New" }
+        
+        // Create book buttons for Old Testament
+        for book in oldTestamentBooks {
+            let button = createBookButton(book: book)
+            oldTestamentStack.addArrangedSubview(button)
+        }
+        
+        // Create book buttons for New Testament
+        for book in newTestamentBooks {
+            let button = createBookButton(book: book)
+            newTestamentStack.addArrangedSubview(button)
         }
     }
     
