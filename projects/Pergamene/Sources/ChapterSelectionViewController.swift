@@ -31,15 +31,33 @@ class ChapterSelectionViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        title = book.name
-        view.backgroundColor = .systemBackground
+        // Parchment background
+        view.backgroundColor = UIColor(red: 0.98, green: 0.97, blue: 0.94, alpha: 1.0)
         
+        setupTitle()
         setupCollectionView()
+    }
+    
+    private func setupTitle() {
+        let titleLabel = UILabel()
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.text = book.name
+        titleLabel.font = UIFont(name: "Cardo-Bold", size: 24) ?? .systemFont(ofSize: 24, weight: .bold)
+        titleLabel.textColor = UIColor(red: 0.4, green: 0.3, blue: 0.2, alpha: 1.0)
+        titleLabel.textAlignment = .center
+        
+        view.addSubview(titleLabel)
+        
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
+        ])
     }
     
     private func setupCollectionView() {
         collectionView.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.backgroundColor = .systemBackground
+        collectionView.backgroundColor = .clear
         collectionView.delegate = self
         collectionView.dataSource = self
         collectionView.register(ChapterCell.self, forCellWithReuseIdentifier: "ChapterCell")
@@ -47,7 +65,7 @@ class ChapterSelectionViewController: UIViewController {
         view.addSubview(collectionView)
         
         NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 70),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
@@ -124,7 +142,7 @@ class ChapterCell: UICollectionViewCell {
         
         label.translatesAutoresizingMaskIntoConstraints = false
         label.textAlignment = .center
-        label.font = .systemFont(ofSize: 18, weight: .medium)
+        label.font = UIFont(name: "Cardo-Bold", size: 20) ?? .systemFont(ofSize: 18, weight: .medium)
         label.textColor = UIColor(red: 0.4, green: 0.3, blue: 0.2, alpha: 1.0)
         
         bookmarkIndicator.translatesAutoresizingMaskIntoConstraints = false

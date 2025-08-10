@@ -11,6 +11,7 @@ class ReadingViewController: UIViewController {
     
     private var currentBook: Book?
     private var currentChapter: Int = 1
+    private var chapterTextCache: [String: String] = [:]
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -67,10 +68,16 @@ class ReadingViewController: UIViewController {
         chapterHeaderView.translatesAutoresizingMaskIntoConstraints = false
         chapterHeaderView.backgroundColor = .clear
         
+        // Make the header tappable
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(bookTitleTapped))
+        chapterHeaderView.addGestureRecognizer(tapGesture)
+        chapterHeaderView.isUserInteractionEnabled = true
+        
         bookLabel.translatesAutoresizingMaskIntoConstraints = false
         bookLabel.font = UIFont(name: "Cardo-Bold", size: 26) ?? .systemFont(ofSize: 24, weight: .semibold)
         bookLabel.textColor = UIColor(red: 0.4, green: 0.3, blue: 0.2, alpha: 1.0)
         bookLabel.textAlignment = .center
+        bookLabel.isUserInteractionEnabled = true
         
         chapterLabel.translatesAutoresizingMaskIntoConstraints = false
         chapterLabel.font = UIFont(name: "Cardo-Regular", size: 20) ?? .systemFont(ofSize: 18, weight: .regular)
@@ -129,29 +136,95 @@ class ReadingViewController: UIViewController {
         guard let book = currentBook else { return }
         guard let chapter = book.chapters.first(where: { $0.number == currentChapter }) else { return }
         
+        // Update labels immediately
         bookLabel.text = book.name
         chapterLabel.text = "Chapter \(currentChapter)"
         
-        // Clear existing content
+        // Clear existing content immediately
         versesStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         
-        // Combine all verses into a single paragraph
-        let fullText = chapter.verses.map { $0.text }.joined(separator: " ")
+        // Check cache first
+        let cacheKey = "\(book.name)_\(currentChapter)"
+        if let cachedText = chapterTextCache[cacheKey] {
+            // Use cached text immediately
+            let paragraphView = createChapterParagraphView(text: cachedText)
+            versesStackView.addArrangedSubview(paragraphView)
+            scrollView.setContentOffset(.zero, animated: false)
+            
+            // Save reading position
+            UserDataManager.shared.saveReadingPosition(
+                book: book.name,
+                chapter: currentChapter,
+                scrollPosition: 0
+            )
+            
+            // Preload adjacent chapters in background
+            preloadAdjacentChapters()
+        } else {
+            // Load chapter content on background queue
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                // Combine all verses into a single paragraph
+                let fullText = chapter.verses.map { $0.text }.joined(separator: " ")
+                
+                DispatchQueue.main.async {
+                    guard let self = self else { return }
+                    
+                    // Cache the text
+                    self.chapterTextCache[cacheKey] = fullText
+                    
+                    // Create single paragraph view with drop cap
+                    let paragraphView = self.createChapterParagraphView(text: fullText)
+                    self.versesStackView.addArrangedSubview(paragraphView)
+                    
+                    // Scroll to top
+                    self.scrollView.setContentOffset(.zero, animated: false)
+                    
+                    // Save reading position
+                    UserDataManager.shared.saveReadingPosition(
+                        book: book.name,
+                        chapter: self.currentChapter,
+                        scrollPosition: 0
+                    )
+                    
+                    // Preload adjacent chapters
+                    self.preloadAdjacentChapters()
+                }
+            }
+        }
+    }
+    
+    private func preloadAdjacentChapters() {
+        guard let book = currentBook else { return }
         
-        // Create single paragraph view with drop cap
-        let paragraphView = createChapterParagraphView(text: fullText)
-        versesStackView.addArrangedSubview(paragraphView)
-        
-        // Scroll to top
-        scrollView.setContentOffset(.zero, animated: false)
-        
-        // Save reading position
-        UserDataManager.shared.saveReadingPosition(
-            book: book.name,
-            chapter: currentChapter,
-            scrollPosition: 0
-        )
-        
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            guard let self = self else { return }
+            
+            // Preload previous chapter
+            if self.currentChapter > 1 {
+                let prevChapter = self.currentChapter - 1
+                let cacheKey = "\(book.name)_\(prevChapter)"
+                if self.chapterTextCache[cacheKey] == nil,
+                   let chapter = book.chapters.first(where: { $0.number == prevChapter }) {
+                    let text = chapter.verses.map { $0.text }.joined(separator: " ")
+                    DispatchQueue.main.async {
+                        self.chapterTextCache[cacheKey] = text
+                    }
+                }
+            }
+            
+            // Preload next chapter
+            if self.currentChapter < book.chapters.count {
+                let nextChapter = self.currentChapter + 1
+                let cacheKey = "\(book.name)_\(nextChapter)"
+                if self.chapterTextCache[cacheKey] == nil,
+                   let chapter = book.chapters.first(where: { $0.number == nextChapter }) {
+                    let text = chapter.verses.map { $0.text }.joined(separator: " ")
+                    DispatchQueue.main.async {
+                        self.chapterTextCache[cacheKey] = text
+                    }
+                }
+            }
+        }
     }
     
     private func createChapterParagraphView(text: String) -> UIView {
@@ -235,6 +308,16 @@ class ReadingViewController: UIViewController {
     
     // MARK: - Actions
     
+    @objc private func bookTitleTapped() {
+        let bookVC = BookSelectionViewController()
+        bookVC.delegate = self
+        bookVC.modalPresentationStyle = .pageSheet
+        if let sheet = bookVC.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+        }
+        present(bookVC, animated: true)
+    }
     
     @objc private func previousChapter() {
         guard let book = currentBook else { return }
@@ -304,16 +387,21 @@ class ReadingViewController: UIViewController {
     
     
     private func loadLastReadingPosition() {
-        if let position = UserDataManager.shared.readingPosition {
-            currentBook = ScriptureManager.shared.book(named: position.bookName)
-            currentChapter = position.chapter
-            loadChapter()
-        } else {
-            // Default to Genesis 1 or first available book
-            if let firstBook = ScriptureManager.shared.books.first {
-                currentBook = firstBook
-                currentChapter = 1
-                loadChapter()
+        // Ensure scripture data is loaded before attempting to read
+        ScriptureManager.shared.preloadData { [weak self] in
+            guard let self = self else { return }
+            
+            if let position = UserDataManager.shared.readingPosition {
+                self.currentBook = ScriptureManager.shared.book(named: position.bookName)
+                self.currentChapter = position.chapter
+                self.loadChapter()
+            } else {
+                // Default to Genesis 1 or first available book
+                if let firstBook = ScriptureManager.shared.books.first {
+                    self.currentBook = firstBook
+                    self.currentChapter = 1
+                    self.loadChapter()
+                }
             }
         }
     }

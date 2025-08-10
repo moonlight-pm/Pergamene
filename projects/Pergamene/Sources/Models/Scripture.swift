@@ -31,24 +31,57 @@ class ScriptureManager {
     
     private var scriptureData: ScriptureData?
     private let plistFileName = "scripture"
+    private let loadingQueue = DispatchQueue(label: "com.pergamene.scriptureLoading", qos: .userInitiated)
+    private var isLoading = false
+    private var loadingCompletion: [(() -> Void)] = []
     
     private init() {
-        loadScripture()
+        // Start loading immediately but asynchronously
+        loadScriptureAsync()
     }
     
-    private func loadScripture() {
-        guard let url = Bundle.main.url(forResource: plistFileName, withExtension: "plist"),
-              let data = try? Data(contentsOf: url) else {
-            print("Failed to load scripture plist")
-            return
-        }
+    private func loadScriptureAsync() {
+        guard !isLoading else { return }
+        isLoading = true
         
-        let decoder = PropertyListDecoder()
-        do {
-            scriptureData = try decoder.decode(ScriptureData.self, from: data)
-            print("Loaded \(scriptureData?.books.count ?? 0) books")
-        } catch {
-            print("Failed to decode scripture data: \(error)")
+        loadingQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            guard let url = Bundle.main.url(forResource: self.plistFileName, withExtension: "plist"),
+                  let data = try? Data(contentsOf: url) else {
+                print("Failed to load scripture plist")
+                self.isLoading = false
+                return
+            }
+            
+            let decoder = PropertyListDecoder()
+            do {
+                let decodedData = try decoder.decode(ScriptureData.self, from: data)
+                
+                DispatchQueue.main.async {
+                    self.scriptureData = decodedData
+                    self.isLoading = false
+                    print("Loaded \(decodedData.books.count) books")
+                    
+                    // Call any pending completions
+                    self.loadingCompletion.forEach { $0() }
+                    self.loadingCompletion.removeAll()
+                }
+            } catch {
+                print("Failed to decode scripture data: \(error)")
+                self.isLoading = false
+            }
+        }
+    }
+    
+    private func ensureLoaded(completion: @escaping () -> Void) {
+        if scriptureData != nil {
+            completion()
+        } else if isLoading {
+            loadingCompletion.append(completion)
+        } else {
+            loadScriptureAsync()
+            loadingCompletion.append(completion)
         }
     }
     
@@ -67,5 +100,9 @@ class ScriptureManager {
     func chapter(bookName: String, chapter: Int) -> Chapter? {
         guard let book = book(named: bookName) else { return nil }
         return book.chapters.first { $0.number == chapter }
+    }
+    
+    func preloadData(completion: @escaping () -> Void) {
+        ensureLoaded(completion: completion)
     }
 }
