@@ -19,6 +19,12 @@ class SettingsViewController: UIViewController {
         loadSettings()
     }
     
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        // Extend background into safe area
+        additionalSafeAreaInsets = UIEdgeInsets(top: -view.safeAreaInsets.top, left: 0, bottom: 0, right: 0)
+    }
+    
     private func setupViews() {
         // Scroll view setup
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -58,13 +64,13 @@ class SettingsViewController: UIViewController {
             contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
             
-            // Close button (drag handle)
-            closeButton.bottomAnchor.constraint(equalTo: contentView.topAnchor, constant: 40),
+            // Close button (drag handle) - position at bottom of screen
+            closeButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
             closeButton.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
             closeButton.widthAnchor.constraint(equalToConstant: 40),
             closeButton.heightAnchor.constraint(equalToConstant: 5),
             
-            titleLabel.topAnchor.constraint(equalTo: closeButton.bottomAnchor, constant: 20),
+            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 60),
             titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             

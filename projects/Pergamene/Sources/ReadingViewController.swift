@@ -3,7 +3,7 @@ import UIKit
 class ReadingViewController: UIViewController {
     
     private let scrollView = UIScrollView()
-    private let contentView = UIView()
+    private let contentView = UIView() // Only contains reading content
     private let topFadeView = UIView()
     private let topFadeGradient = CAGradientLayer()
     private let chapterHeaderView = UIView()
@@ -11,14 +11,28 @@ class ReadingViewController: UIViewController {
     private let chapterLabel = UILabel()
     private let versesStackView = UIStackView()
     
-    // Settings panel
+    // Floating chapter indicator
+    private let floatingIndicatorView = UIView()
+    private let floatingIndicatorLabel = UILabel()
+    private var floatingIndicatorVisible = false
+    
+    // Settings overlay system - completely separate from scroll content
+    private let settingsOverlayView = UIView()
+    private let settingsDimmingView = UIView()
     private var settingsViewController: SettingsViewController?
-    private var settingsView: UIView?
-    private var settingsTopConstraint: NSLayoutConstraint?
-    private var isPullingSettings = false
     private var settingsIsVisible = false
-    private let settingsPullThreshold: CGFloat = 100
-    private let settingsHeight: CGFloat = 400
+    private let screenHeight: CGFloat = UIScreen.main.bounds.height
+    
+    // Enhanced elastic pull parameters
+    private let pullActivationThreshold: CGFloat = 90.0  // Distance to trigger show (150% more)
+    private let pushActivationThreshold: CGFloat = 90.0   // Distance to trigger hide (same as pull)
+    private let elasticDamping: CGFloat = 0.6            // Controls resistance feel
+    private let maxElasticDistance: CGFloat = 120.0     // Maximum elastic pull
+    
+    // Animation and state tracking
+    private var isAnimatingSettings = false
+    private var isDraggingSettings = false
+    private var settingsPanGestureRecognizer: UIPanGestureRecognizer?
     
     private var currentBook: Book?
     private var currentChapter: Int = 1
@@ -41,7 +55,7 @@ class ReadingViewController: UIViewController {
         scrollView.contentInsetAdjustmentBehavior = .never // Disable automatic inset adjustment
         
         setupViews()
-        setupSettingsPanel()
+        setupSettingsOverlay()
         setupGestures()
         setupNotifications()
         loadLastReadingPosition()
@@ -74,16 +88,24 @@ class ReadingViewController: UIViewController {
         setupScrollView()
         setupChapterHeader()
         setupVersesStackView()
+        setupFloatingIndicator()
     }
     
     private func setupScrollView() {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.backgroundColor = .clear
+        scrollView.backgroundColor = .black
         scrollView.delegate = self
-        scrollView.clipsToBounds = false // Don't clip content
+        scrollView.clipsToBounds = false  // Allow bounce beyond bounds
+        scrollView.alwaysBounceVertical = true
+        scrollView.bounces = true
+        scrollView.bouncesZoom = false
+        scrollView.showsVerticalScrollIndicator = true
+        scrollView.decelerationRate = .normal
+        scrollView.contentInsetAdjustmentBehavior = .never
         
+        // Content view only contains reading content - much simpler
         contentView.translatesAutoresizingMaskIntoConstraints = false
-        contentView.backgroundColor = UIColor.parchmentTexture // Texture on content view
+        contentView.backgroundColor = UIColor.parchmentTexture
         contentView.clipsToBounds = false // Don't clip verse numbers
         
         view.addSubview(scrollView)
@@ -93,17 +115,23 @@ class ReadingViewController: UIViewController {
         setupGradientMask()
         
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.topAnchor), // Extend into safe area
+            // Scroll view fills the entire view
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor), // Extend into safe area
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             
+            // Content view defines scroll content - starts at y=0 (no offset needed)
             contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
             contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
             contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
             contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor)
         ])
+        
+        // No need to set initial offset - content starts at y=0 naturally
+        scrollView.contentInset = UIEdgeInsets.zero
+        scrollView.scrollIndicatorInsets = UIEdgeInsets.zero
     }
     
     private func setupGradientMask() {
@@ -197,9 +225,88 @@ class ReadingViewController: UIViewController {
         ])
     }
     
+    private func setupFloatingIndicator() {
+        // Setup floating indicator view
+        floatingIndicatorView.translatesAutoresizingMaskIntoConstraints = false
+        floatingIndicatorView.backgroundColor = UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 0.85) // Dark semi-transparent
+        floatingIndicatorView.alpha = 0 // Start hidden
+        
+        // Setup label
+        floatingIndicatorLabel.translatesAutoresizingMaskIntoConstraints = false
+        floatingIndicatorLabel.font = UIFont(name: "Cardo-Regular", size: 14) ?? .systemFont(ofSize: 14)
+        floatingIndicatorLabel.textColor = UIColor(red: 0.95, green: 0.92, blue: 0.88, alpha: 1.0) // Light parchment color
+        floatingIndicatorLabel.textAlignment = .center
+        
+        floatingIndicatorView.addSubview(floatingIndicatorLabel)
+        view.addSubview(floatingIndicatorView)
+        
+        // Position just below safe area
+        NSLayoutConstraint.activate([
+            floatingIndicatorView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            floatingIndicatorView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            floatingIndicatorView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            floatingIndicatorView.heightAnchor.constraint(equalToConstant: 28),
+            
+            floatingIndicatorLabel.centerYAnchor.constraint(equalTo: floatingIndicatorView.centerYAnchor),
+            floatingIndicatorLabel.leadingAnchor.constraint(equalTo: floatingIndicatorView.leadingAnchor, constant: 20),
+            floatingIndicatorLabel.trailingAnchor.constraint(equalTo: floatingIndicatorView.trailingAnchor, constant: -20)
+        ])
+        
+        // Ensure it stays above scroll content but below fade gradient
+        floatingIndicatorView.layer.zPosition = 10
+    }
     
-    private func setupSettingsPanel() {
-        // Create settings view controller
+    // MARK: - Settings Overlay System
+    
+    private func setupSettingsOverlay() {
+        // Setup dimming view (sits between reader and settings)
+        settingsDimmingView.translatesAutoresizingMaskIntoConstraints = false
+        settingsDimmingView.backgroundColor = UIColor.black.withAlphaComponent(0.4)
+        settingsDimmingView.alpha = 0
+        settingsDimmingView.isHidden = true
+        settingsDimmingView.isUserInteractionEnabled = false  // No tap to dismiss
+        
+        // Setup settings overlay view (floats above everything)
+        settingsOverlayView.translatesAutoresizingMaskIntoConstraints = false
+        settingsOverlayView.backgroundColor = UIColor.parchmentTexture
+        
+        // Setup the settings view controller content
+        setupSettingsViewController()
+        
+        // Add shadow to show it's floating
+        settingsOverlayView.layer.shadowColor = UIColor.black.cgColor
+        settingsOverlayView.layer.shadowOffset = CGSize(width: 0, height: 4)
+        settingsOverlayView.layer.shadowOpacity = 0.3
+        settingsOverlayView.layer.shadowRadius = 8
+        
+        // Add to view hierarchy
+        view.addSubview(settingsDimmingView)
+        view.addSubview(settingsOverlayView)
+        
+        // Position settings off-screen above the view
+        NSLayoutConstraint.activate([
+            // Dimming view covers the entire view
+            settingsDimmingView.topAnchor.constraint(equalTo: view.topAnchor),
+            settingsDimmingView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            settingsDimmingView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            settingsDimmingView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            
+            // Settings overlay starts positioned off-screen above
+            settingsOverlayView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            settingsOverlayView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            settingsOverlayView.heightAnchor.constraint(equalToConstant: screenHeight),
+            settingsOverlayView.bottomAnchor.constraint(equalTo: view.topAnchor) // Initially off-screen above
+        ])
+        
+        // Create and setup settings view controller
+        setupSettingsViewController()
+        
+        // Ensure overlay is above other views
+        settingsOverlayView.layer.zPosition = 100
+        settingsDimmingView.layer.zPosition = 50
+    }
+    
+    private func setupSettingsViewController() {
         settingsViewController = SettingsViewController()
         
         guard let settingsVC = settingsViewController else { return }
@@ -207,30 +314,192 @@ class ReadingViewController: UIViewController {
         // Add as child view controller
         addChild(settingsVC)
         
-        // Setup settings view
-        settingsView = settingsVC.view
-        settingsView?.translatesAutoresizingMaskIntoConstraints = false
-        settingsView?.layer.shadowColor = UIColor.black.cgColor
-        settingsView?.layer.shadowOffset = CGSize(width: 0, height: 2)
-        settingsView?.layer.shadowRadius = 10
-        settingsView?.layer.shadowOpacity = 0.3
+        // Add settings view to the overlay
+        let settingsView = settingsVC.view!
+        settingsView.translatesAutoresizingMaskIntoConstraints = false
+        settingsOverlayView.addSubview(settingsView)
         
-        // Add to view hierarchy (behind main content initially)
-        if let settingsView = settingsView {
-            view.insertSubview(settingsView, at: 0)
-            
-            // Setup constraints
-            settingsTopConstraint = settingsView.topAnchor.constraint(equalTo: view.topAnchor, constant: -settingsHeight)
-            
-            NSLayoutConstraint.activate([
-                settingsTopConstraint!,
-                settingsView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                settingsView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                settingsView.heightAnchor.constraint(equalToConstant: settingsHeight)
-            ])
-        }
+        NSLayoutConstraint.activate([
+            settingsView.topAnchor.constraint(equalTo: settingsOverlayView.topAnchor),
+            settingsView.leadingAnchor.constraint(equalTo: settingsOverlayView.leadingAnchor),
+            settingsView.trailingAnchor.constraint(equalTo: settingsOverlayView.trailingAnchor),
+            settingsView.bottomAnchor.constraint(equalTo: settingsOverlayView.bottomAnchor)
+        ])
         
         settingsVC.didMove(toParent: self)
+    }
+    
+    // MARK: - Gesture System
+    
+    private func setupGestures() {
+        // Settings overlay pan gesture - only activates when at scroll position 0
+        settingsPanGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handleSettingsPanGesture(_:)))
+        settingsPanGestureRecognizer?.delegate = self
+        view.addGestureRecognizer(settingsPanGestureRecognizer!)
+        
+        // Configure swipe gestures for chapter navigation
+        let swipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipeLeft))
+        swipeLeft.direction = .left
+        swipeLeft.delegate = self
+        contentView.addGestureRecognizer(swipeLeft)
+        
+        let swipeRight = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipeRight))
+        swipeRight.direction = .right
+        swipeRight.delegate = self
+        contentView.addGestureRecognizer(swipeRight)
+        
+        // No swipe-up to dismiss - only push-up gesture works
+    }
+    
+    @objc private func handleSettingsPanGesture(_ gesture: UIPanGestureRecognizer) {
+        let translation = gesture.translation(in: view)
+        let velocity = gesture.velocity(in: view)
+        
+        switch gesture.state {
+        case .began:
+            // Only begin if we're at the top of scroll view and pulling down, or settings are visible and pushing up
+            let atScrollTop = scrollView.contentOffset.y <= 0
+            let canPullDown = !settingsIsVisible && atScrollTop && velocity.y > 0
+            let canPushUp = settingsIsVisible && velocity.y < 0
+            
+            if canPullDown || canPushUp {
+                isDraggingSettings = true
+            }
+            
+        case .changed:
+            guard isDraggingSettings else { return }
+            
+            if !settingsIsVisible {
+                // Pulling down from reader to reveal settings
+                handlePullDownToRevealSettings(translation: translation.y)
+            } else {
+                // Pushing up from settings to hide
+                handlePushUpToHideSettings(translation: translation.y)
+            }
+            
+        case .ended, .cancelled:
+            guard isDraggingSettings else { return }
+            
+            if !settingsIsVisible {
+                // Determine if we should show settings based on pull distance and velocity
+                if translation.y >= pullActivationThreshold || velocity.y > 800 {
+                    animateShowSettings()
+                } else {
+                    animateHideSettings()
+                }
+            } else {
+                // Determine if we should hide settings based on push distance and velocity
+                if abs(translation.y) >= pushActivationThreshold || velocity.y < -800 {
+                    animateHideSettings()
+                } else {
+                    animateShowSettings()
+                }
+            }
+            
+            // Reset state
+            isDraggingSettings = false
+            gesture.setTranslation(.zero, in: view)
+            
+        default:
+            break
+        }
+    }
+    
+    private func handlePullDownToRevealSettings(translation: CGFloat) {
+        // Apply elastic resistance
+        let resistance = elasticResistanceCurve(distance: translation, maxDistance: maxElasticDistance)
+        let elasticTranslation = translation * resistance
+        
+        // Move settings overlay down from off-screen position
+        // Settings start at -screenHeight, pull them down
+        let yTranslation = min(elasticTranslation, screenHeight)
+        let progress = yTranslation / screenHeight
+        
+        settingsOverlayView.transform = CGAffineTransform(translationX: 0, y: yTranslation)
+        
+        // Fade in dimming as we pull
+        settingsDimmingView.alpha = progress * 0.4
+        if progress > 0 && settingsDimmingView.isHidden {
+            settingsDimmingView.isHidden = false
+        }
+    }
+    
+    private func handlePushUpToHideSettings(translation: CGFloat) {
+        // translation is negative when pushing up, make it positive
+        let upwardTranslation = abs(translation)
+        
+        // Apply elastic resistance for upward push
+        let resistance = elasticResistanceCurve(distance: upwardTranslation, maxDistance: maxElasticDistance)
+        let elasticTranslation = upwardTranslation * resistance
+        
+        // Move settings overlay back up from visible position
+        // Start at screenHeight (visible), push up towards 0
+        let yTranslation = max(0, screenHeight - elasticTranslation)
+        
+        settingsOverlayView.transform = CGAffineTransform(translationX: 0, y: yTranslation)
+        
+        // Fade out dimming as we push
+        let progress = yTranslation / screenHeight
+        settingsDimmingView.alpha = 0.4 * progress
+    }
+    
+    private func elasticResistanceCurve(distance: CGFloat, maxDistance: CGFloat) -> CGFloat {
+        // Natural elastic curve - starts easy, gets harder as you pull further
+        let normalizedDistance = min(distance / maxDistance, 1.0)
+        let resistance = elasticDamping * (1.0 - pow(1.0 - normalizedDistance, 3.0))
+        return max(0.1, resistance) // Minimum resistance to maintain responsiveness
+    }
+    
+    private func animateShowSettings() {
+        guard !settingsIsVisible && !isAnimatingSettings else { return }
+        
+        isAnimatingSettings = true
+        settingsIsVisible = true
+        
+        // Show dimming view
+        settingsDimmingView.isHidden = false
+        
+        UIView.animate(
+            withDuration: 0.5,
+            delay: 0,
+            usingSpringWithDamping: 0.8,
+            initialSpringVelocity: 0.3,
+            options: [.curveEaseOut, .allowUserInteraction]
+        ) {
+            // Slide settings down to cover the screen (translate by full height)
+            self.settingsOverlayView.transform = CGAffineTransform(translationX: 0, y: self.screenHeight)
+            // Fade in dimming
+            self.settingsDimmingView.alpha = 0.4
+        } completion: { _ in
+            self.isAnimatingSettings = false
+        }
+    }
+    
+    private func animateHideSettings() {
+        guard !isAnimatingSettings else { return }
+        
+        isAnimatingSettings = true
+        settingsIsVisible = false
+        
+        UIView.animate(
+            withDuration: 0.5,
+            delay: 0,
+            usingSpringWithDamping: 0.8,
+            initialSpringVelocity: 0.3,
+            options: [.curveEaseOut, .allowUserInteraction]
+        ) {
+            // Reset to initial off-screen position (identity since it's positioned off-screen by constraints)
+            self.settingsOverlayView.transform = .identity
+            // Fade out dimming
+            self.settingsDimmingView.alpha = 0
+        } completion: { _ in
+            self.settingsDimmingView.isHidden = true
+            self.isAnimatingSettings = false
+        }
+    }
+    
+    @objc private func dismissSettings() {
+        animateHideSettings()
     }
     
     private func setupNotifications() {
@@ -259,6 +528,9 @@ class ReadingViewController: UIViewController {
         bookLabel.text = book.name
         chapterLabel.text = "Chapter \(currentChapter)"
         
+        // Update floating indicator
+        floatingIndicatorLabel.text = "\(book.name) • Chapter \(currentChapter)"
+        
         // Clear existing content and verse numbers
         versesStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         verseNumberLabels.forEach { $0.removeFromSuperview() }
@@ -281,14 +553,20 @@ class ReadingViewController: UIViewController {
         let paragraphView = createChapterParagraphView(text: fullText, verses: chapter.verses)
         versesStackView.addArrangedSubview(paragraphView)
         
-        // Scroll to top
-        scrollView.setContentOffset(.zero, animated: false)
+        // Restore saved scroll position for this chapter (no offset needed)
+        let savedPosition = UserDataManager.shared.getChapterScrollPosition(book: book.name, chapter: currentChapter)
+        if savedPosition > 0 {
+            scrollView.setContentOffset(CGPoint(x: 0, y: savedPosition), animated: false)
+        } else {
+            // Start at top of content
+            scrollView.setContentOffset(CGPoint(x: 0, y: 0), animated: false)
+        }
         
-        // Save reading position
+        // Update current reading position
         UserDataManager.shared.saveReadingPosition(
             book: book.name,
             chapter: currentChapter,
-            scrollPosition: 0
+            scrollPosition: savedPosition
         )
         
         // Preload adjacent chapters in background
@@ -380,8 +658,6 @@ class ReadingViewController: UIViewController {
         
         // If we have verse data, create markers
         if !verses.isEmpty {
-            var currentPosition = 0
-            
             for (index, verse) in verses.enumerated() {
                 let verseText = verse.text
                 
@@ -527,17 +803,6 @@ class ReadingViewController: UIViewController {
         }
     }
     
-    
-    private func setupGestures() {
-        let swipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipeLeft))
-        swipeLeft.direction = .left
-        view.addGestureRecognizer(swipeLeft)
-        
-        let swipeRight = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipeRight))
-        swipeRight.direction = .right
-        view.addGestureRecognizer(swipeRight)
-    }
-    
     @objc private func handleSwipeLeft() {
         nextChapter()
     }
@@ -634,7 +899,6 @@ class ReadingViewController: UIViewController {
     
     // MARK: - Helpers
     
-    
     private func loadLastReadingPosition() {
         // Scripture data is already loaded in memory
         if let position = UserDataManager.shared.readingPosition {
@@ -658,37 +922,31 @@ extension ReadingViewController: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         let yOffset = scrollView.contentOffset.y
         
-        // Handle pull-down for settings
-        if yOffset < 0 && !settingsIsVisible {
-            // User is pulling down
-            let pullDistance = abs(yOffset)
-            
-            if pullDistance > 0 {
-                isPullingSettings = true
-                
-                // Calculate elastic effect
-                let elasticDistance = min(pullDistance, settingsPullThreshold)
-                let elasticRatio = elasticDistance / settingsPullThreshold
-                
-                // Move settings panel down with elastic effect
-                let settingsOffset = elasticDistance * 0.5 // Half speed for elastic feel
-                settingsTopConstraint?.constant = -settingsHeight + settingsOffset
-                
-                // Move main content down
-                scrollView.transform = CGAffineTransform(translationX: 0, y: settingsOffset)
-                
-                // Update alpha for fade effect
-                settingsView?.alpha = elasticRatio
-            }
-        } else if settingsIsVisible && yOffset > -settingsHeight {
-            // Handle closing settings when scrolling up
-            if yOffset > -settingsHeight / 2 {
-                hideSettings()
+        // Only handle vertical scrolling, ignore horizontal swipes
+        if abs(scrollView.contentOffset.x) > 0 {
+            scrollView.contentOffset.x = 0
+            return
+        }
+        
+        // Skip if we're animating settings
+        if isAnimatingSettings {
+            return
+        }
+        
+        // Update floating indicator visibility
+        // Show when header is scrolled out of view (simplified without settings height offset)
+        let headerBottom = chapterHeaderView.frame.height + 20
+        let shouldShowIndicator = yOffset > headerBottom && !settingsIsVisible
+        
+        if shouldShowIndicator != floatingIndicatorVisible {
+            floatingIndicatorVisible = shouldShowIndicator
+            UIView.animate(withDuration: 0.2) {
+                self.floatingIndicatorView.alpha = shouldShowIndicator ? 1.0 : 0.0
             }
         }
         
-        // Save scroll position periodically (only when not showing settings)
-        if !settingsIsVisible && yOffset >= 0 {
+        // Save scroll position (no offset needed - direct position)
+        if yOffset >= 0 {
             if let book = currentBook {
                 UserDataManager.shared.saveReadingPosition(
                     book: book.name,
@@ -699,58 +957,13 @@ extension ReadingViewController: UIScrollViewDelegate {
         }
     }
     
+    // Simplified scroll delegate methods - no settings snapping needed
     func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
-        let yOffset = scrollView.contentOffset.y
-        
-        if isPullingSettings && yOffset < 0 {
-            let pullDistance = abs(yOffset)
-            
-            if pullDistance >= settingsPullThreshold || velocity.y < -0.5 {
-                // Show settings
-                showSettings()
-                targetContentOffset.pointee = CGPoint(x: 0, y: -settingsHeight)
-            } else {
-                // Snap back
-                hideSettings()
-                targetContentOffset.pointee = CGPoint(x: 0, y: 0)
-            }
-            
-            isPullingSettings = false
-        }
+        // Only handle chapter navigation gestures here if needed
     }
     
-    private func showSettings() {
-        guard !settingsIsVisible else { return }
-        
-        settingsIsVisible = true
-        
-        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0, options: .curveEaseInOut, animations: {
-            self.settingsTopConstraint?.constant = 0
-            self.scrollView.transform = CGAffineTransform(translationX: 0, y: self.settingsHeight)
-            self.settingsView?.alpha = 1.0
-            self.view.layoutIfNeeded()
-        })
-        
-        // Add inset to scroll view
-        scrollView.contentInset.top = settingsHeight
-        scrollView.scrollIndicatorInsets.top = settingsHeight
-    }
-    
-    private func hideSettings() {
-        guard settingsIsVisible else { return }
-        
-        settingsIsVisible = false
-        
-        UIView.animate(withDuration: 0.3, animations: {
-            self.settingsTopConstraint?.constant = -self.settingsHeight
-            self.scrollView.transform = .identity
-            self.settingsView?.alpha = 0
-            self.view.layoutIfNeeded()
-        })
-        
-        // Remove inset from scroll view
-        scrollView.contentInset.top = 0
-        scrollView.scrollIndicatorInsets.top = 0
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        // No settings snapping needed anymore
     }
 }
 
@@ -761,5 +974,54 @@ extension ReadingViewController: BookSelectionDelegate {
         currentBook = book
         currentChapter = 1
         loadChapter()
+    }
+}
+
+// MARK: - UIGestureRecognizerDelegate
+
+extension ReadingViewController: UIGestureRecognizerDelegate {
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        // Allow settings pan gesture to work alongside scroll view's pan when at top
+        if gestureRecognizer == settingsPanGestureRecognizer && otherGestureRecognizer == scrollView.panGestureRecognizer {
+            // Only allow simultaneous recognition when at the top of content
+            return scrollView.contentOffset.y <= 0
+        }
+        
+        // Don't allow swipe gestures when settings are visible
+        if gestureRecognizer is UISwipeGestureRecognizer {
+            return !settingsIsVisible && !isDraggingSettings
+        }
+        
+        return false
+    }
+    
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        // Only allow swipe gestures when settings are not visible
+        if gestureRecognizer is UISwipeGestureRecognizer {
+            return !settingsIsVisible && !isDraggingSettings
+        }
+        
+        // Settings pan gesture logic
+        if gestureRecognizer == settingsPanGestureRecognizer {
+            if let panGesture = gestureRecognizer as? UIPanGestureRecognizer {
+                let velocity = panGesture.velocity(in: view)
+                let location = panGesture.location(in: view)
+                
+                // Check if gesture is primarily vertical
+                let isVerticalGesture = abs(velocity.y) > abs(velocity.x) * 0.5  // More lenient
+                
+                if settingsIsVisible {
+                    // When settings are visible, allow push up from anywhere on settings
+                    let touchingSettings = settingsOverlayView.frame.contains(location)
+                    return touchingSettings && isVerticalGesture && velocity.y < 0
+                } else {
+                    // When settings hidden, only allow pull down from top of scroll
+                    let atScrollTop = scrollView.contentOffset.y <= 0
+                    return atScrollTop && isVerticalGesture && velocity.y > 0
+                }
+            }
+        }
+        
+        return true
     }
 }

@@ -166,5 +166,29 @@ class UserDataManager {
             scrollPosition: scrollPosition,
             timestamp: Date()
         )
+        
+        // Also save the per-chapter position
+        saveChapterScrollPosition(book: book, chapter: chapter, scrollPosition: scrollPosition)
+    }
+    
+    // MARK: - Per-Chapter Scroll Positions
+    
+    private func chapterScrollKey(book: String, chapter: Int) -> String {
+        return "pergamene.scroll.\(book).\(chapter)"
+    }
+    
+    func saveChapterScrollPosition(book: String, chapter: Int, scrollPosition: Double) {
+        let key = chapterScrollKey(book: book, chapter: chapter)
+        UserDefaults.standard.set(scrollPosition, forKey: key)
+    }
+    
+    func getChapterScrollPosition(book: String, chapter: Int) -> Double {
+        let key = chapterScrollKey(book: book, chapter: chapter)
+        return UserDefaults.standard.double(forKey: key)
+    }
+    
+    func clearChapterScrollPosition(book: String, chapter: Int) {
+        let key = chapterScrollKey(book: book, chapter: chapter)
+        UserDefaults.standard.removeObject(forKey: key)
     }
 }

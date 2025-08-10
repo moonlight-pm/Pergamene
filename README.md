@@ -1,62 +1,55 @@
 # Pergamene
 
-A clean, focused iOS app for reading Scripture without distractions.
+A beautiful iOS Bible reading app with a focus on distraction-free reading and elegant typography.
+
+## Recent Updates
+
+### Settings Panel Overlay System
+- Settings panel is now a separate overlay that slides down over the reading content
+- Pull down from the top of any chapter to reveal settings (requires ~90 point pull)
+- Push up on the settings panel to dismiss (reverse gesture, no tap-to-dismiss)
+- Elastic resistance provides natural, tactile feedback
+- Semi-transparent dimming overlay shows visual hierarchy
+
+### Reading Experience Improvements
+- **Scroll Position Memory**: Each chapter remembers its exact scroll position
+- **Floating Chapter Indicator**: Subtle bar appears when main header scrolls out of view
+- **Improved Gesture Recognition**: Better discrimination between vertical pulls and horizontal swipes
+- **Clean Architecture**: Settings no longer interfere with content scrolling
+
+### Technical Improvements
+- Refactored settings from unified scroll view to overlay architecture
+- Simplified scroll view logic (no more offset calculations)
+- Enhanced elastic pull mechanics with natural resistance curves
+- Better separation of concerns between reader and settings UI
 
 ## Features
 
-- **Minimalist Interface**: No tab bars, navigation bars, or UI clutter
-- **Elegant Typography**: Uses the Cardo font family, specifically designed for biblical texts
-- **Drop Caps**: Beautiful ornate drop caps at the beginning of each chapter (placeholder for custom artwork)
-- **Continuous Text**: Scripture displayed as flowing paragraphs without verse numbers for immersive reading
-- **Gesture Navigation**: Swipe left/right to navigate between chapters
-- **Currently Available**: Brenton Septuagint (Old Testament)
+- **Elegant Typography**: Custom fonts (Cardo for body text, Unifraktur Maguntia for drop caps)
+- **Parchment-style Design**: Warm, paper-like background texture
+- **Drop Caps**: Beautiful illuminated first letters for each chapter
+- **Verse Numbers**: Toggle on/off in settings, displayed in margins
+- **Smart Navigation**: Swipe left/right to change chapters
+- **Settings Panel**: Pull down to access, push up to dismiss
+- **Reading Position**: Automatically saves your place in each chapter
 
-## Design Philosophy
+## Architecture
 
-Pergamene embraces the traditional book reading experience:
-- Text flows as continuous paragraphs, not broken by verse numbers
-- Each chapter begins with an ornate drop cap, reminiscent of medieval manuscripts
-- Clean, distraction-free interface focused entirely on the text
-- Typography optimized for long-form reading
+- Pure UIKit implementation (no SwiftUI)
+- Tuist for project generation
+- Clean separation between UI layers (reader, settings, overlays)
+- Efficient text caching for smooth performance
 
-## Technical Details
+## Building
 
-### Scripture Text Processing
+1. Install Tuist if needed: `curl -Ls https://install.tuist.io | bash`
+2. Generate Xcode project: `tuist generate`
+3. Open `Pergamene.xcworkspace`
+4. Build and run
 
-The app uses a custom USFM (Unified Standard Format Markers) parser to convert scripture texts into a clean, readable format. The parser:
+## Next Steps
 
-- Removes all footnotes and cross-references 
-- Strips formatting markers (like `\f`, `\x`, `\sc`, etc.)
-- Cleans up character styles while preserving the text
-- Outputs clean text in a structured plist format for efficient loading
+- Horizontal chapter navigation with pre-rendered adjacent chapters
+- Enhanced bookmarking and highlighting features
+- Additional typography options
 
-### Typography
-
-- **Primary Font**: Cardo - A classical serif font designed for biblical scholarship
-- **Drop Caps**: Currently uses a simple boxed letter placeholder, ready for custom ornamental artwork
-- **Text Layout**: Uses UITextView with exclusion paths for proper text wrapping around drop caps
-
-### Building
-
-1. Ensure you have Xcode 15+ installed
-2. Run `make setup` to download and process scripture texts
-3. Open the project in Xcode and build
-
-### Project Structure
-
-```
-Pergamene/
-├── Makefile                 # Build automation
-├── scripts/                 # Text processing scripts
-│   ├── build_texts.sh      # Downloads source texts
-│   └── convert_texts.swift # USFM parser and converter
-├── projects/               
-│   └── Pergamene/          # iOS app source
-│       ├── Sources/        # Swift source files
-│       └── Resources/      # App resources including processed texts
-└── downloads/              # Downloaded source texts (git-ignored)
-```
-
-## License
-
-The scripture texts are in the public domain. The app code is proprietary.
