@@ -193,13 +193,17 @@ class BookSelectionViewController: UIViewController {
         
         // If book has only one chapter, select it directly
         if book.chapters.count == 1 {
+            // Post notification to load chapter first
             delegate?.didSelectBook(book)
-            dismiss(animated: true) {
-                NotificationCenter.default.post(
-                    name: .chapterSelected,
-                    object: nil,
-                    userInfo: ["book": book, "chapter": 1]
-                )
+            NotificationCenter.default.post(
+                name: .chapterSelected,
+                object: nil,
+                userInfo: ["book": book, "chapter": 1]
+            )
+            
+            // Small delay to ensure chapter loads before dismissing
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.dismiss(animated: true)
             }
         } else {
             // Show chapter selection
@@ -219,16 +223,18 @@ class BookSelectionViewController: UIViewController {
 
 extension BookSelectionViewController: ChapterSelectionDelegate {
     func didSelectChapter(_ chapter: Int, in book: Book) {
-        // Dismiss views immediately with animation
-        presentedViewController?.dismiss(animated: true)
-        delegate?.didSelectBook(book)
-        dismiss(animated: true) {
-            // Post notification after dismissal completes
-            NotificationCenter.default.post(
-                name: .chapterSelected,
-                object: nil,
-                userInfo: ["book": book, "chapter": chapter]
-            )
+        // Post notification to load chapter first
+        NotificationCenter.default.post(
+            name: .chapterSelected,
+            object: nil,
+            userInfo: ["book": book, "chapter": chapter]
+        )
+        
+        // Small delay to ensure chapter loads before dismissing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.presentedViewController?.dismiss(animated: true)
+            self?.delegate?.didSelectBook(book)
+            self?.dismiss(animated: true)
         }
     }
 }
