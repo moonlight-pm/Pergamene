@@ -217,11 +217,14 @@ class ReadingViewController: UIViewController {
         
         contentView.addSubview(versesStackView)
         
+        // Add extra bottom padding for comfortable reading (1/2 of screen height)
+        let extraBottomSpace = UIScreen.main.bounds.height * 0.5
+        
         NSLayoutConstraint.activate([
             versesStackView.topAnchor.constraint(equalTo: chapterHeaderView.bottomAnchor, constant: 20),
             versesStackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             versesStackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            versesStackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20)
+            versesStackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -extraBottomSpace)
         ])
     }
     
