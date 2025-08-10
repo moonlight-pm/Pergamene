@@ -4,7 +4,8 @@ class ReadingViewController: UIViewController {
     
     private let scrollView = UIScrollView()
     private let contentView = UIView()
-    private let statusBarBackgroundView = UIView()
+    private let topFadeView = UIView()
+    private let topFadeGradient = CAGradientLayer()
     private let chapterHeaderView = UIView()
     private let bookLabel = UILabel()
     private let chapterLabel = UILabel()
@@ -21,15 +22,15 @@ class ReadingViewController: UIViewController {
         view.backgroundColor = .black // Black for overscroll areas
         scrollView.contentInsetAdjustmentBehavior = .never // Disable automatic inset adjustment
         
-        // Debug: Print available fonts
+        // Debug: Print ALL available fonts to find UnifrakturMaguntia
+        print("=== ALL FONT FAMILIES ===")
         for family in UIFont.familyNames.sorted() {
-            if family.lowercased().contains("unifraktur") || family.lowercased().contains("maguntia") {
-                print("Gothic Font family: \(family)")
-                for font in UIFont.fontNames(forFamilyName: family) {
-                    print("  - \(font)")
-                }
+            print("Font family: \(family)")
+            for font in UIFont.fontNames(forFamilyName: family) {
+                print("  - \(font)")
             }
         }
+        print("=== END FONT FAMILIES ===")
         
         setupViews()
         setupGestures()
@@ -41,6 +42,23 @@ class ReadingViewController: UIViewController {
         super.viewSafeAreaInsetsDidChange()
         // Update top padding based on safe area
         chapterHeaderTopConstraint?.constant = view.safeAreaInsets.top + 20
+        updateGradientMask()
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        updateGradientMask()
+    }
+    
+    private func updateGradientMask() {
+        // Update gradient frame
+        topFadeGradient.frame = topFadeView.bounds
+        
+        // Adjust gradient height based on safe area
+        let safeAreaTop = view.safeAreaInsets.top
+        if safeAreaTop > 0 {
+            topFadeView.constraints.first { $0.firstAttribute == .height }?.constant = safeAreaTop + 20
+        }
     }
     
     private func setupViews() {
@@ -57,13 +75,11 @@ class ReadingViewController: UIViewController {
         contentView.translatesAutoresizingMaskIntoConstraints = false
         contentView.backgroundColor = UIColor.parchmentTexture // Texture on content view
         
-        // Status bar background to prevent text showing behind status bar
-        statusBarBackgroundView.translatesAutoresizingMaskIntoConstraints = false
-        statusBarBackgroundView.backgroundColor = .black
-        
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
-        view.addSubview(statusBarBackgroundView) // Add on top of scroll view
+        
+        // Setup gradient mask for fading text in safe area
+        setupGradientMask()
         
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.topAnchor), // Extend into safe area
@@ -75,13 +91,31 @@ class ReadingViewController: UIViewController {
             contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
             contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
             contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
-            
-            // Status bar background
-            statusBarBackgroundView.topAnchor.constraint(equalTo: view.topAnchor),
-            statusBarBackgroundView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            statusBarBackgroundView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            statusBarBackgroundView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor)
+            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor)
+        ])
+    }
+    
+    private func setupGradientMask() {
+        topFadeView.translatesAutoresizingMaskIntoConstraints = false
+        topFadeView.isUserInteractionEnabled = false
+        
+        // Configure gradient layer - fade from black to transparent
+        topFadeGradient.colors = [
+            UIColor.black.cgColor,
+            UIColor.black.withAlphaComponent(0).cgColor
+        ]
+        topFadeGradient.locations = [0, 1]
+        topFadeGradient.startPoint = CGPoint(x: 0.5, y: 0)
+        topFadeGradient.endPoint = CGPoint(x: 0.5, y: 1)
+        
+        topFadeView.layer.addSublayer(topFadeGradient)
+        view.addSubview(topFadeView)
+        
+        NSLayoutConstraint.activate([
+            topFadeView.topAnchor.constraint(equalTo: view.topAnchor),
+            topFadeView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            topFadeView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            topFadeView.heightAnchor.constraint(equalToConstant: 100) // Adjust height as needed
         ])
     }
     
