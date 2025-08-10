@@ -1,0 +1,6 @@
+- This is a Bible reading and study app.
+- It will embed freely available texts from the web.
+- It is iOS only.
+- It will have bookmarks, and highlighting, and sharing options.
+- Our main plan is in /plans/MASTER.md
+- We'll use tuist to build and manage the project
