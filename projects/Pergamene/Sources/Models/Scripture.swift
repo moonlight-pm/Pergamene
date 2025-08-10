@@ -6,12 +6,16 @@ struct ScriptureData: Codable {
     let books: [Book]
 }
 
-struct Book: Codable {
+struct Book: Codable, Equatable {
     let name: String
     let abbreviation: String
     let testament: String
     let orderIndex: Int
     let chapters: [Chapter]
+    
+    static func == (lhs: Book, rhs: Book) -> Bool {
+        return lhs.name == rhs.name && lhs.orderIndex == rhs.orderIndex
+    }
 }
 
 struct Chapter: Codable {
