@@ -18,8 +18,11 @@ A focused iOS Bible reading app featuring the Brenton Septuagint (Old Testament)
 ### Primary Features
 1. **Reading Experience**
    - Chapter-by-chapter reading view
-   - Clean, focused interface
-   - Typography customization (font size, type, dark mode)
+   - Minimalist interface without navigation bars or tab bars
+   - Continuous paragraph text display (no verse numbers shown)
+   - Ornate drop caps at chapter beginnings
+   - Swipe gestures for chapter navigation
+   - Typography: Cardo font family optimized for biblical texts
 
 2. **Bookmarks**
    - 3-5 physical-style bookmarks (mimicking cloth bookmarks)
@@ -62,6 +65,30 @@ A focused iOS Bible reading app featuring the Brenton Septuagint (Old Testament)
   - Bookmarks (book, chapter)
   - Highlights (book, chapter, verse)
   - Reading position (last read location)
+
+## Development Status
+
+### Completed Features
+- ✅ USFM parser with comprehensive footnote/formatting removal
+- ✅ Scripture text processing and plist generation
+- ✅ Basic reading view with chapter navigation
+- ✅ Minimalist UI without distracting chrome
+- ✅ Cardo font integration for biblical typography
+- ✅ Drop cap implementation (placeholder for custom artwork)
+- ✅ Continuous paragraph text display
+- ✅ Swipe gesture navigation
+- ✅ Text wrapping around drop caps using UITextView exclusion paths
+
+### In Progress
+- 🔄 Drop cap artwork (currently using simple boxed letters)
+- 🔄 Bookmarks functionality
+- 🔄 Highlights functionality
+
+### To Do
+- 📝 BSB New Testament integration
+- 📝 Share functionality
+- 📝 Reading position persistence
+- 📝 App Store submission
 
 ## Development Phases
 

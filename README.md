@@ -4,11 +4,20 @@ A clean, focused iOS app for reading Scripture without distractions.
 
 ## Features
 
-- **Clean Reading Experience**: No ads, no distractions - just the text
-- **Multiple Translations**: Currently includes the Brenton Septuagint (Old Testament)
-- **Bookmarks**: Save your favorite passages for quick access
-- **Highlights**: Mark important verses for study
-- **Native iOS Design**: Built with SwiftUI for a modern, responsive interface
+- **Minimalist Interface**: No tab bars, navigation bars, or UI clutter
+- **Elegant Typography**: Uses the Cardo font family, specifically designed for biblical texts
+- **Drop Caps**: Beautiful ornate drop caps at the beginning of each chapter (placeholder for custom artwork)
+- **Continuous Text**: Scripture displayed as flowing paragraphs without verse numbers for immersive reading
+- **Gesture Navigation**: Swipe left/right to navigate between chapters
+- **Currently Available**: Brenton Septuagint (Old Testament)
+
+## Design Philosophy
+
+Pergamene embraces the traditional book reading experience:
+- Text flows as continuous paragraphs, not broken by verse numbers
+- Each chapter begins with an ornate drop cap, reminiscent of medieval manuscripts
+- Clean, distraction-free interface focused entirely on the text
+- Typography optimized for long-form reading
 
 ## Technical Details
 
@@ -20,6 +29,12 @@ The app uses a custom USFM (Unified Standard Format Markers) parser to convert s
 - Strips formatting markers (like `\f`, `\x`, `\sc`, etc.)
 - Cleans up character styles while preserving the text
 - Outputs clean text in a structured plist format for efficient loading
+
+### Typography
+
+- **Primary Font**: Cardo - A classical serif font designed for biblical scholarship
+- **Drop Caps**: Currently uses a simple boxed letter placeholder, ready for custom ornamental artwork
+- **Text Layout**: Uses UITextView with exclusion paths for proper text wrapping around drop caps
 
 ### Building
 

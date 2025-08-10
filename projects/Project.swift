@@ -19,7 +19,14 @@ let project = Project(
                     "UIRequiresFullScreen": true,
                     "CFBundleDisplayName": "Pergamene",
                     "CFBundleShortVersionString": "1.0.0",
-                    "CFBundleVersion": "1"
+                    "CFBundleVersion": "1",
+                    "UIAppFonts": [
+                        "Cardo-Regular.ttf",
+                        "Cardo-Bold.ttf",
+                        "Cardo-Italic.ttf",
+                        "UnifrakturMaguntia-Regular.ttf",
+                        "MedievalSharp.ttf"
+                    ]
                 ]
             ),
             sources: ["Pergamene/Sources/**"],

@@ -64,8 +64,8 @@ class ScriptureManager {
         return books.first { $0.abbreviation == abbr }
     }
     
-    func chapter(book: String, chapter: Int) -> Chapter? {
-        guard let book = book(named: book) else { return nil }
+    func chapter(bookName: String, chapter: Int) -> Chapter? {
+        guard let book = book(named: bookName) else { return nil }
         return book.chapters.first { $0.number == chapter }
     }
 }

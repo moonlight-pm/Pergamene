@@ -54,9 +54,3 @@ extension BookmarksViewController: UITableViewDelegate {
         // TODO: Navigate to bookmarked location
     }
 }
-
-struct Bookmark: Codable {
-    let bookName: String
-    let chapter: Int
-    let timestamp: Date
-}

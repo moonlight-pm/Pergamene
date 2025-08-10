@@ -54,11 +54,3 @@ extension HighlightsViewController: UITableViewDelegate {
         // TODO: Navigate to highlighted verse
     }
 }
-
-struct Highlight: Codable {
-    let bookName: String
-    let chapter: Int
-    let verse: Int
-    let text: String
-    let timestamp: Date
-}

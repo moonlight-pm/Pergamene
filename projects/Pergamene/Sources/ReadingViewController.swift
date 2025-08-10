@@ -8,21 +8,27 @@ class ReadingViewController: UIViewController {
     private let bookLabel = UILabel()
     private let chapterLabel = UILabel()
     private let versesStackView = UIStackView()
-    private let navigationToolbar = UIToolbar()
     
     private var currentBook: Book?
     private var currentChapter: Int = 1
-    private var verseLabels: [Int: UILabel] = [:]
-    private var selectedVerses: Set<Int> = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        title = "Pergamene"
         view.backgroundColor = UIColor(red: 0.98, green: 0.97, blue: 0.94, alpha: 1.0)
         
+        // Debug: Print available fonts
+        for family in UIFont.familyNames.sorted() {
+            if family.lowercased().contains("cardo") {
+                print("Font family: \(family)")
+                for font in UIFont.fontNames(forFamilyName: family) {
+                    print("  - \(font)")
+                }
+            }
+        }
+        
         setupViews()
-        setupNavigationBar()
+        setupGestures()
         setupNotifications()
         loadLastReadingPosition()
     }
@@ -31,7 +37,6 @@ class ReadingViewController: UIViewController {
         setupScrollView()
         setupChapterHeader()
         setupVersesStackView()
-        setupNavigationToolbar()
     }
     
     private func setupScrollView() {
@@ -48,7 +53,7 @@ class ReadingViewController: UIViewController {
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -44),
+            scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             
             contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
             contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
@@ -63,12 +68,12 @@ class ReadingViewController: UIViewController {
         chapterHeaderView.backgroundColor = .clear
         
         bookLabel.translatesAutoresizingMaskIntoConstraints = false
-        bookLabel.font = .systemFont(ofSize: 24, weight: .semibold)
+        bookLabel.font = UIFont(name: "Cardo-Bold", size: 26) ?? .systemFont(ofSize: 24, weight: .semibold)
         bookLabel.textColor = UIColor(red: 0.4, green: 0.3, blue: 0.2, alpha: 1.0)
         bookLabel.textAlignment = .center
         
         chapterLabel.translatesAutoresizingMaskIntoConstraints = false
-        chapterLabel.font = .systemFont(ofSize: 18, weight: .regular)
+        chapterLabel.font = UIFont(name: "Cardo-Regular", size: 20) ?? .systemFont(ofSize: 18, weight: .regular)
         chapterLabel.textColor = UIColor(red: 0.5, green: 0.4, blue: 0.3, alpha: 1.0)
         chapterLabel.textAlignment = .center
         
@@ -108,67 +113,6 @@ class ReadingViewController: UIViewController {
         ])
     }
     
-    private func setupNavigationToolbar() {
-        navigationToolbar.translatesAutoresizingMaskIntoConstraints = false
-        navigationToolbar.barTintColor = UIColor(red: 0.95, green: 0.93, blue: 0.88, alpha: 1.0)
-        
-        let previousButton = UIBarButtonItem(
-            image: UIImage(systemName: "chevron.left"),
-            style: .plain,
-            target: self,
-            action: #selector(previousChapter)
-        )
-        
-        let nextButton = UIBarButtonItem(
-            image: UIImage(systemName: "chevron.right"),
-            style: .plain,
-            target: self,
-            action: #selector(nextChapter)
-        )
-        
-        let bookmarkButton = UIBarButtonItem(
-            image: UIImage(systemName: "bookmark"),
-            style: .plain,
-            target: self,
-            action: #selector(toggleBookmark)
-        )
-        
-        let shareButton = UIBarButtonItem(
-            image: UIImage(systemName: "square.and.arrow.up"),
-            style: .plain,
-            target: self,
-            action: #selector(shareVerse)
-        )
-        
-        let flexSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        
-        navigationToolbar.items = [previousButton, flexSpace, bookmarkButton, flexSpace, shareButton, flexSpace, nextButton]
-        
-        view.addSubview(navigationToolbar)
-        
-        NSLayoutConstraint.activate([
-            navigationToolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            navigationToolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            navigationToolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            navigationToolbar.heightAnchor.constraint(equalToConstant: 44)
-        ])
-    }
-    
-    private func setupNavigationBar() {
-        navigationItem.leftBarButtonItem = UIBarButtonItem(
-            title: "Books",
-            style: .plain,
-            target: self,
-            action: #selector(showBookSelector)
-        )
-        
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            image: UIImage(systemName: "textformat"),
-            style: .plain,
-            target: self,
-            action: #selector(showTextSettings)
-        )
-    }
     
     private func setupNotifications() {
         NotificationCenter.default.addObserver(
@@ -188,16 +132,15 @@ class ReadingViewController: UIViewController {
         bookLabel.text = book.name
         chapterLabel.text = "Chapter \(currentChapter)"
         
-        // Clear existing verses
+        // Clear existing content
         versesStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        verseLabels.removeAll()
-        selectedVerses.removeAll()
         
-        // Add verses
-        for verse in chapter.verses {
-            let verseView = createVerseView(verse: verse)
-            versesStackView.addArrangedSubview(verseView)
-        }
+        // Combine all verses into a single paragraph
+        let fullText = chapter.verses.map { $0.text }.joined(separator: " ")
+        
+        // Create single paragraph view with drop cap
+        let paragraphView = createChapterParagraphView(text: fullText)
+        versesStackView.addArrangedSubview(paragraphView)
         
         // Scroll to top
         scrollView.setContentOffset(.zero, animated: false)
@@ -209,73 +152,89 @@ class ReadingViewController: UIViewController {
             scrollPosition: 0
         )
         
-        // Update bookmark button
-        updateBookmarkButton()
     }
     
-    private func createVerseView(verse: Verse) -> UIView {
+    private func createChapterParagraphView(text: String) -> UIView {
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
         
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(verseTapped(_:)))
-        container.addGestureRecognizer(tapGesture)
-        container.tag = verse.number
+        // Get the first character (but don't remove it from the text yet)
+        let firstChar = String(text.prefix(1)).uppercased()
         
-        let numberLabel = UILabel()
-        numberLabel.translatesAutoresizingMaskIntoConstraints = false
-        numberLabel.text = "\(verse.number)"
-        numberLabel.font = .systemFont(ofSize: 12, weight: .bold)
-        numberLabel.textColor = UIColor(red: 0.6, green: 0.4, blue: 0.2, alpha: 0.8)
-        numberLabel.setContentHuggingPriority(.required, for: .horizontal)
+        // Create simple boxed drop cap placeholder
+        let dropCapContainer = UIView()
+        dropCapContainer.translatesAutoresizingMaskIntoConstraints = false
+        dropCapContainer.backgroundColor = UIColor(red: 0.98, green: 0.97, blue: 0.94, alpha: 1.0)
+        dropCapContainer.layer.borderColor = UIColor(red: 0.5, green: 0.35, blue: 0.2, alpha: 1.0).cgColor
+        dropCapContainer.layer.borderWidth = 2
         
-        let textLabel = UILabel()
-        textLabel.translatesAutoresizingMaskIntoConstraints = false
-        textLabel.text = verse.text
-        textLabel.font = .systemFont(ofSize: 18)
-        textLabel.textColor = UIColor(red: 0.2, green: 0.15, blue: 0.1, alpha: 1.0)
-        textLabel.numberOfLines = 0
-        textLabel.lineBreakMode = .byWordWrapping
+        let dropCapLabel = UILabel()
+        dropCapLabel.translatesAutoresizingMaskIntoConstraints = false
+        dropCapLabel.text = firstChar
+        dropCapLabel.font = UIFont(name: "Cardo-Bold", size: 56) ?? .systemFont(ofSize: 56, weight: .bold)
+        dropCapLabel.textColor = UIColor(red: 0.4, green: 0.3, blue: 0.2, alpha: 1.0)
+        dropCapLabel.textAlignment = .center
         
-        container.addSubview(numberLabel)
-        container.addSubview(textLabel)
+        dropCapContainer.addSubview(dropCapLabel)
+        
+        // Create text view for proper text wrapping
+        let textView = UITextView()
+        textView.translatesAutoresizingMaskIntoConstraints = false
+        textView.isEditable = false
+        textView.isScrollEnabled = false
+        textView.backgroundColor = .clear
+        textView.textContainerInset = UIEdgeInsets.zero
+        textView.textContainer.lineFragmentPadding = 0
+        
+        // Create attributed string with line spacing
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = 10
+        paragraphStyle.alignment = .justified
+        
+        // Don't add extra spaces - the exclusion path handles the wrapping
+        let spacedText = String(text.dropFirst())
+        
+        let attributedString = NSAttributedString(
+            string: spacedText,
+            attributes: [
+                .font: UIFont(name: "Cardo-Regular", size: 20) ?? .systemFont(ofSize: 18),
+                .foregroundColor: UIColor(red: 0.2, green: 0.15, blue: 0.1, alpha: 1.0),
+                .paragraphStyle: paragraphStyle
+            ]
+        )
+        textView.attributedText = attributedString
+        
+        // Create exclusion path for text to wrap around drop cap
+        let exclusionPath = UIBezierPath(rect: CGRect(x: 0, y: 0, width: 80, height: 70))
+        textView.textContainer.exclusionPaths = [exclusionPath]
+        
+        container.addSubview(textView)
+        container.addSubview(dropCapContainer) // Add drop cap on top
         
         NSLayoutConstraint.activate([
-            numberLabel.topAnchor.constraint(equalTo: container.topAnchor),
-            numberLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            numberLabel.widthAnchor.constraint(equalToConstant: 30),
+            // Drop cap container
+            dropCapContainer.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            dropCapContainer.topAnchor.constraint(equalTo: container.topAnchor),
+            dropCapContainer.widthAnchor.constraint(equalToConstant: 70),
+            dropCapContainer.heightAnchor.constraint(equalToConstant: 70),
             
-            textLabel.topAnchor.constraint(equalTo: container.topAnchor),
-            textLabel.leadingAnchor.constraint(equalTo: numberLabel.trailingAnchor, constant: 8),
-            textLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            textLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            // Drop cap label centered in container
+            dropCapLabel.centerXAnchor.constraint(equalTo: dropCapContainer.centerXAnchor),
+            dropCapLabel.centerYAnchor.constraint(equalTo: dropCapContainer.centerYAnchor),
+            
+            // Text view fills the container (with slight vertical offset)
+            textView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            textView.topAnchor.constraint(equalTo: container.topAnchor, constant: 3),
+            textView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            textView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
-        
-        verseLabels[verse.number] = textLabel
-        
-        // Check for highlights
-        let highlights = UserDataManager.shared.highlightsForChapter(
-            book: currentBook?.name ?? "",
-            chapter: currentChapter
-        )
-        if highlights.contains(where: { $0.verseStart <= verse.number && $0.verseEnd >= verse.number }) {
-            textLabel.backgroundColor = UIColor(red: 1.0, green: 0.95, blue: 0.5, alpha: 0.3)
-        }
         
         return container
     }
     
+    
     // MARK: - Actions
     
-    @objc private func showBookSelector() {
-        let bookVC = BookSelectionViewController()
-        bookVC.delegate = self
-        let navVC = UINavigationController(rootViewController: bookVC)
-        present(navVC, animated: true)
-    }
-    
-    @objc private func showTextSettings() {
-        // TODO: Implement text settings
-    }
     
     @objc private func previousChapter() {
         guard let book = currentBook else { return }
@@ -313,55 +272,23 @@ class ReadingViewController: UIViewController {
         }
     }
     
-    @objc private func toggleBookmark() {
-        guard let book = currentBook else { return }
+    
+    private func setupGestures() {
+        let swipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipeLeft))
+        swipeLeft.direction = .left
+        view.addGestureRecognizer(swipeLeft)
         
-        let bookmarks = UserDataManager.shared.bookmarks
-        if let existingBookmark = bookmarks.first(where: { $0.bookName == book.name && $0.chapter == currentChapter }) {
-            UserDataManager.shared.removeBookmark(existingBookmark)
-        } else {
-            let bookmark = Bookmark(bookName: book.name, chapter: currentChapter)
-            UserDataManager.shared.addBookmark(bookmark)
-        }
-        
-        updateBookmarkButton()
+        let swipeRight = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipeRight))
+        swipeRight.direction = .right
+        view.addGestureRecognizer(swipeRight)
     }
     
-    @objc private func shareVerse() {
-        guard !selectedVerses.isEmpty,
-              let book = currentBook else { return }
-        
-        var shareText = ""
-        let sortedVerses = selectedVerses.sorted()
-        
-        for verseNum in sortedVerses {
-            if let verseLabel = verseLabels[verseNum] {
-                shareText += "\(verseNum). \(verseLabel.text ?? "")\n"
-            }
-        }
-        
-        shareText += "\n— \(book.name) \(currentChapter):\(sortedVerses.first!)"
-        if sortedVerses.count > 1 {
-            shareText += "-\(sortedVerses.last!)"
-        }
-        
-        let activityVC = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
-        present(activityVC, animated: true)
+    @objc private func handleSwipeLeft() {
+        nextChapter()
     }
     
-    @objc private func verseTapped(_ gesture: UITapGestureRecognizer) {
-        guard let verseView = gesture.view,
-              let verseLabel = verseLabels[verseView.tag] else { return }
-        
-        let verseNumber = verseView.tag
-        
-        if selectedVerses.contains(verseNumber) {
-            selectedVerses.remove(verseNumber)
-            verseLabel.backgroundColor = .clear
-        } else {
-            selectedVerses.insert(verseNumber)
-            verseLabel.backgroundColor = UIColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 0.3)
-        }
+    @objc private func handleSwipeRight() {
+        previousChapter()
     }
     
     @objc private func handleChapterSelection(_ notification: Notification) {
@@ -375,17 +302,6 @@ class ReadingViewController: UIViewController {
     
     // MARK: - Helpers
     
-    private func updateBookmarkButton() {
-        guard let book = currentBook else { return }
-        
-        let hasBookmark = UserDataManager.shared.bookmarks.contains { 
-            $0.bookName == book.name && $0.chapter == currentChapter 
-        }
-        
-        if let bookmarkButton = navigationToolbar.items?[2] {
-            bookmarkButton.image = UIImage(systemName: hasBookmark ? "bookmark.fill" : "bookmark")
-        }
-    }
     
     private func loadLastReadingPosition() {
         if let position = UserDataManager.shared.readingPosition {

@@ -34,4 +34,4 @@ echo "Step 3: Converting to plist format..."
 "$SCRIPT_DIR/convert_texts.swift" "$PROJECT_ROOT"
 
 echo "=== Build complete ==="
-echo "Scripture texts are ready in Projects/Pergamene/Resources/Texts/"
+echo "Scripture texts are ready in projects/Pergamene/Resources/Texts/"
