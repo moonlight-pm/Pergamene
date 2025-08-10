@@ -30,17 +30,24 @@ struct Verse: Codable {
 
 // MARK: - Scripture Manager
 
-class ScriptureManager {
+/// Manages loading and access to scripture data from bundled plist files
+/// Loads both Old Testament and New Testament data into memory on initialization
+final class ScriptureManager {
     static let shared = ScriptureManager()
+    
+    // MARK: - Private Properties
     
     private var scriptureData: ScriptureData?
     private let plistFileName = "scripture"
     private var isLoaded = false
     
+    // MARK: - Initialization
+    
     private init() {
-        // Load immediately on initialization
         loadScripture()
     }
+    
+    // MARK: - Private Methods
     
     private func loadScripture() {
         guard !isLoaded else { return }
@@ -54,12 +61,12 @@ class ScriptureManager {
             do {
                 let otData = try decoder.decode(ScriptureData.self, from: data)
                 allBooks.append(contentsOf: otData.books)
-                print("Loaded \(otData.books.count) OT books into memory")
+                print("Loaded \(otData.books.count) Old Testament books")
             } catch {
-                print("Failed to decode OT scripture data: \(error)")
+                print("Failed to decode Old Testament scripture data: \(error)")
             }
         } else {
-            print("Failed to load OT scripture plist")
+            print("Failed to load Old Testament scripture plist")
         }
         
         // Load New Testament
@@ -68,12 +75,12 @@ class ScriptureManager {
             do {
                 let ntData = try decoder.decode(ScriptureData.self, from: data)
                 allBooks.append(contentsOf: ntData.books)
-                print("Loaded \(ntData.books.count) NT books into memory")
+                print("Loaded \(ntData.books.count) New Testament books")
             } catch {
-                print("Failed to decode NT scripture data: \(error)")
+                print("Failed to decode New Testament scripture data: \(error)")
             }
         } else {
-            print("Failed to load NT scripture plist")
+            print("Failed to load New Testament scripture plist")
         }
         
         // Combine into single ScriptureData
@@ -81,33 +88,48 @@ class ScriptureManager {
             scriptureData = ScriptureData(books: allBooks)
             isLoaded = true
             
-            // Log memory usage for debugging
+            // Log total verses for memory usage tracking
             let totalVerses = allBooks.reduce(0) { total, book in
                 total + book.chapters.reduce(0) { chapterTotal, chapter in
                     chapterTotal + chapter.verses.count
                 }
             }
-            print("Total verses loaded: \(totalVerses)")
+            print("Scripture data loaded: \(allBooks.count) books, \(totalVerses) verses")
         }
     }
     
+    // MARK: - Public Interface
+    
+    /// All available books in order
     var books: [Book] {
         return scriptureData?.books ?? []
     }
     
+    /// Find a book by its full name
+    /// - Parameter name: The full name of the book (e.g., "Genesis")
+    /// - Returns: The book if found, nil otherwise
     func book(named name: String) -> Book? {
         return books.first { $0.name == name }
     }
     
+    /// Find a book by its abbreviation
+    /// - Parameter abbr: The abbreviation of the book (e.g., "Gen")
+    /// - Returns: The book if found, nil otherwise
     func book(withAbbreviation abbr: String) -> Book? {
         return books.first { $0.abbreviation == abbr }
     }
     
+    /// Get a specific chapter from a book
+    /// - Parameters:
+    ///   - bookName: The full name of the book
+    ///   - chapter: The chapter number
+    /// - Returns: The chapter if found, nil otherwise
     func chapter(bookName: String, chapter: Int) -> Chapter? {
         guard let book = book(named: bookName) else { return nil }
         return book.chapters.first { $0.number == chapter }
     }
     
+    /// Whether scripture data has been loaded and is ready for use
     var isReady: Bool {
         return isLoaded
     }

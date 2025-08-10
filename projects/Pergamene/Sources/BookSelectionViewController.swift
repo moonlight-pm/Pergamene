@@ -1,10 +1,24 @@
 import UIKit
 
+// MARK: - Chapter Selection Notifications
+
+extension Notification.Name {
+    static let chapterSelected = Notification.Name("chapterSelected")
+}
+
+// MARK: - BookSelectionDelegate
+
 protocol BookSelectionDelegate: AnyObject {
     func didSelectBook(_ book: Book)
 }
 
+// MARK: - BookSelectionViewController
+
+/// Displays a list of all available books organized by testament
+/// Allows navigation to individual books and chapters
 class BookSelectionViewController: UIViewController {
+    
+    // MARK: - UI Components
     
     private let scrollView = UIScrollView()
     private let contentView = UIView()
@@ -14,43 +28,56 @@ class BookSelectionViewController: UIViewController {
     private let oldTestamentStack = UIStackView()
     private let newTestamentStack = UIStackView()
     
+    // MARK: - Properties
+    
     private var books: [Book] = []
     private var oldTestamentBooks: [Book] = []
     private var newTestamentBooks: [Book] = []
     
     weak var delegate: BookSelectionDelegate?
     
+    // MARK: - Lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Parchment texture background
         view.backgroundColor = UIColor.parchmentTexture
-        
         setupViews()
         loadBooks()
     }
     
+    // MARK: - Setup Methods
+    
     private func setupViews() {
-        // Title
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.text = "Select Book"
-        titleLabel.font = UIFont(name: "Cardo-Bold", size: 28) ?? .systemFont(ofSize: 28, weight: .bold)
-        titleLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0) // Much darker
-        titleLabel.textAlignment = .center
-        
-        // Scroll view setup
+        setupScrollView()
+        setupTitle()
+        setupTestamentSections()
+        setupConstraints()
+    }
+    
+    private func setupScrollView() {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         contentView.translatesAutoresizingMaskIntoConstraints = false
         
         view.addSubview(titleLabel)
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
-        
+    }
+    
+    private func setupTitle() {
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.text = "Select Book"
+        titleLabel.font = UIFont(name: "Cardo-Bold", size: 28) ?? .systemFont(ofSize: 28, weight: .bold)
+        titleLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0)
+        titleLabel.textAlignment = .center
+    }
+    
+    private func setupTestamentSections() {
         // Old Testament section
         oldTestamentLabel.translatesAutoresizingMaskIntoConstraints = false
         oldTestamentLabel.text = "Old Testament"
         oldTestamentLabel.font = UIFont(name: "Cardo-Bold", size: 22) ?? .systemFont(ofSize: 22, weight: .semibold)
-        oldTestamentLabel.textColor = UIColor(red: 0.2, green: 0.12, blue: 0.05, alpha: 1.0) // Darker
+        oldTestamentLabel.textColor = UIColor(red: 0.2, green: 0.12, blue: 0.05, alpha: 1.0)
         
         oldTestamentStack.translatesAutoresizingMaskIntoConstraints = false
         oldTestamentStack.axis = .vertical
@@ -61,7 +88,7 @@ class BookSelectionViewController: UIViewController {
         newTestamentLabel.translatesAutoresizingMaskIntoConstraints = false
         newTestamentLabel.text = "New Testament"
         newTestamentLabel.font = UIFont(name: "Cardo-Bold", size: 22) ?? .systemFont(ofSize: 22, weight: .semibold)
-        newTestamentLabel.textColor = UIColor(red: 0.2, green: 0.12, blue: 0.05, alpha: 1.0) // Darker
+        newTestamentLabel.textColor = UIColor(red: 0.2, green: 0.12, blue: 0.05, alpha: 1.0)
         
         newTestamentStack.translatesAutoresizingMaskIntoConstraints = false
         newTestamentStack.axis = .vertical
@@ -72,7 +99,9 @@ class BookSelectionViewController: UIViewController {
         contentView.addSubview(oldTestamentStack)
         contentView.addSubview(newTestamentLabel)
         contentView.addSubview(newTestamentStack)
-        
+    }
+    
+    private func setupConstraints() {
         NSLayoutConstraint.activate([
             // Title
             titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
@@ -112,8 +141,9 @@ class BookSelectionViewController: UIViewController {
         ])
     }
     
+    // MARK: - Data Loading
+    
     private func loadBooks() {
-        // Scripture data is already loaded in memory
         books = ScriptureManager.shared.books
         oldTestamentBooks = books.filter { $0.testament == "Old" }
         newTestamentBooks = books.filter { $0.testament == "New" }
@@ -142,14 +172,14 @@ class BookSelectionViewController: UIViewController {
         
         let titleAttributes: [NSAttributedString.Key: Any] = [
             .font: UIFont(name: "Cardo-Regular", size: 18) ?? .systemFont(ofSize: 18),
-            .foregroundColor: UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0), // Much darker
+            .foregroundColor: UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0),
             .paragraphStyle: paragraphStyle
         ]
         
         let chapterCount = book.chapters.count == 1 ? "1 chapter" : "\(book.chapters.count) chapters"
         let subtitleAttributes: [NSAttributedString.Key: Any] = [
             .font: UIFont(name: "Cardo-Regular", size: 14) ?? .systemFont(ofSize: 14),
-            .foregroundColor: UIColor(red: 0.25, green: 0.18, blue: 0.12, alpha: 0.9), // Darker
+            .foregroundColor: UIColor(red: 0.25, green: 0.18, blue: 0.12, alpha: 0.9),
             .paragraphStyle: paragraphStyle
         ]
         
@@ -161,13 +191,23 @@ class BookSelectionViewController: UIViewController {
         button.setAttributedTitle(attributedTitle, for: .normal)
         button.titleLabel?.numberOfLines = 2
         button.contentHorizontalAlignment = .left
-        button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 10, bottom: 8, right: 10)
         
-        // Add subtle background on hover/press
+        // Use newer UIButton configuration for iOS 15+ instead of deprecated contentEdgeInsets
+        if #available(iOS 15.0, *) {
+            var config = UIButton.Configuration.plain()
+            config.attributedTitle = AttributedString(attributedTitle)
+            config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10)
+            button.configuration = config
+        } else {
+            // Fallback for older iOS versions
+            button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 10, bottom: 8, right: 10)
+        }
+        
+        // Add touch feedback
         button.addTarget(self, action: #selector(bookButtonTouchDown(_:)), for: .touchDown)
         button.addTarget(self, action: #selector(bookButtonTouchUp(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
         
-        // Store the actual index in our books array
+        // Store the book index for selection
         if let index = books.firstIndex(where: { $0.name == book.name }) {
             button.tag = index
         }
@@ -176,9 +216,11 @@ class BookSelectionViewController: UIViewController {
         return button
     }
     
+    // MARK: - Button Actions
+    
     @objc private func bookButtonTouchDown(_ sender: UIButton) {
         UIView.animate(withDuration: 0.1) {
-            sender.backgroundColor = UIColor(red: 0.82, green: 0.72, blue: 0.58, alpha: 0.3) // Semi-transparent parchment tone
+            sender.backgroundColor = UIColor(red: 0.82, green: 0.72, blue: 0.58, alpha: 0.3)
         }
     }
     
@@ -191,21 +233,19 @@ class BookSelectionViewController: UIViewController {
     @objc private func bookSelected(_ sender: UIButton) {
         let book = books[sender.tag]
         
-        // If book has only one chapter, select it directly
         if book.chapters.count == 1 {
-            // Post notification to load chapter first (don't call delegate here)
+            // Single chapter book - navigate directly
             NotificationCenter.default.post(
                 name: .chapterSelected,
                 object: nil,
                 userInfo: ["book": book, "chapter": 1]
             )
             
-            // Small delay to ensure chapter loads before dismissing
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                 self?.dismiss(animated: true)
             }
         } else {
-            // Show chapter selection
+            // Multi-chapter book - show chapter selection
             let chapterVC = ChapterSelectionViewController(book: book)
             chapterVC.delegate = self
             chapterVC.modalPresentationStyle = .pageSheet
@@ -222,23 +262,17 @@ class BookSelectionViewController: UIViewController {
 
 extension BookSelectionViewController: ChapterSelectionDelegate {
     func didSelectChapter(_ chapter: Int, in book: Book) {
-        // Post notification to load chapter first (don't call delegate here)
+        // Post notification to load the selected chapter
         NotificationCenter.default.post(
             name: .chapterSelected,
             object: nil,
             userInfo: ["book": book, "chapter": chapter]
         )
         
-        // Small delay to ensure chapter loads before dismissing
+        // Dismiss both the chapter selection and book selection views
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             self?.presentedViewController?.dismiss(animated: true)
             self?.dismiss(animated: true)
         }
     }
-}
-
-// MARK: - Notification Extension
-
-extension Notification.Name {
-    static let chapterSelected = Notification.Name("chapterSelected")
 }

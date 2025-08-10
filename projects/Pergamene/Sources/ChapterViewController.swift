@@ -1,12 +1,12 @@
 import UIKit
 
 // MARK: - ChapterViewController
-// Displays a single chapter with vertical scrolling, settings overlay, etc.
-// This is extracted from ReadingViewController to be reusable in the horizontal paging system
 
+/// Displays a single chapter with vertical scrolling, settings overlay, and verse numbers
+/// Designed for reuse within the horizontal paging system
 class ChapterViewController: UIViewController {
     
-    // MARK: - Properties
+    // MARK: - UI Components
     
     private let scrollView = UIScrollView()
     private let contentView = UIView()
@@ -29,24 +29,25 @@ class ChapterViewController: UIViewController {
     private var settingsIsVisible = false
     private let screenHeight: CGFloat = UIScreen.main.bounds.height
     
-    // Elastic pull parameters
+    // MARK: - Settings Gesture Properties
+    
     private let pullActivationThreshold: CGFloat = 90.0
     private let pushActivationThreshold: CGFloat = 90.0
     private let elasticDamping: CGFloat = 0.6
     private let maxElasticDistance: CGFloat = 120.0
     
-    // Animation and state tracking
     private var isAnimatingSettings = false
     private var isDraggingSettings = false
     private var settingsPanGestureRecognizer: UIPanGestureRecognizer?
-    private var lastContentOffset: CGFloat = 0
     
-    // Chapter data
+    // MARK: - Chapter Data Properties
+    
     private var currentBook: Book?
     private var currentChapter: Int = 1
     private var chapterTextCache: [String: String] = [:]
     private var chapterHeaderTopConstraint: NSLayoutConstraint?
     private var verseNumberLabels: [UILabel] = []
+    
     private var verseNumbersVisible: Bool {
         return UserDefaults.standard.bool(forKey: "ShowVerseNumbers")
     }
@@ -81,18 +82,11 @@ class ChapterViewController: UIViewController {
         updateGradientMask()
     }
     
-    private func updateGradientMask() {
-        // Update gradient frame
-        topFadeGradient.frame = topFadeView.bounds
-        
-        // Adjust gradient height based on safe area
-        let safeAreaTop = view.safeAreaInsets.top
-        if safeAreaTop > 0 {
-            topFadeView.constraints.first { $0.firstAttribute == .height }?.constant = safeAreaTop + 20
-        }
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
-    // MARK: - Public Methods
+    // MARK: - Public Interface
     
     func loadChapter(book: Book, chapter: Int) {
         currentBook = book
@@ -100,45 +94,15 @@ class ChapterViewController: UIViewController {
         
         guard let chapterData = book.chapters.first(where: { $0.number == chapter }) else { return }
         
-        // Update labels
-        bookLabel.text = book.name
-        chapterLabel.text = "Chapter \(chapter)"
-        floatingIndicatorLabel.text = "\(book.name) • Chapter \(chapter)"
+        updateLabels(book: book, chapter: chapter)
+        clearExistingContent()
         
-        // Clear existing content
-        versesStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        verseNumberLabels.forEach { $0.removeFromSuperview() }
-        verseNumberLabels.removeAll()
-        
-        // Get or create cached text
-        let cacheKey = "\(book.name)_\(chapter)"
-        let fullText: String
-        
-        if let cachedText = chapterTextCache[cacheKey] {
-            fullText = cachedText
-        } else {
-            fullText = chapterData.verses.map { $0.text }.joined(separator: " ")
-            chapterTextCache[cacheKey] = fullText
-        }
-        
-        // Create paragraph view
+        let fullText = getCachedOrCreateText(book: book, chapter: chapter, verses: chapterData.verses)
         let paragraphView = createChapterParagraphView(text: fullText, verses: chapterData.verses)
         versesStackView.addArrangedSubview(paragraphView)
         
-        // Restore saved scroll position
-        let savedPosition = UserDataManager.shared.getChapterScrollPosition(book: book.name, chapter: chapter)
-        if savedPosition > 0 {
-            scrollView.setContentOffset(CGPoint(x: 0, y: savedPosition), animated: false)
-        } else {
-            scrollView.setContentOffset(.zero, animated: false)
-        }
-        
-        // Update reading position
-        UserDataManager.shared.saveReadingPosition(
-            book: book.name,
-            chapter: chapter,
-            scrollPosition: savedPosition
-        )
+        restoreScrollPosition(book: book, chapter: chapter)
+        updateReadingPosition(book: book, chapter: chapter)
     }
     
     func getCurrentBook() -> Book? {
@@ -191,7 +155,6 @@ class ChapterViewController: UIViewController {
         chapterHeaderView.backgroundColor = .clear
         chapterHeaderView.isUserInteractionEnabled = true
         
-        // Make the header tappable
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(bookTitleTapped))
         chapterHeaderView.addGestureRecognizer(tapGesture)
         
@@ -236,7 +199,7 @@ class ChapterViewController: UIViewController {
         
         contentView.addSubview(versesStackView)
         
-        // Extra bottom padding for comfortable reading
+        // Extra bottom padding for comfortable reading (half screen height)
         let extraBottomSpace = UIScreen.main.bounds.height * 0.5
         
         NSLayoutConstraint.activate([
@@ -278,19 +241,18 @@ class ChapterViewController: UIViewController {
         topFadeView.translatesAutoresizingMaskIntoConstraints = false
         topFadeView.isUserInteractionEnabled = false
         
-        // Configure gradient layer with ease-in curve - more color stops for smoother transition
+        // Configure gradient with smooth transitions
         topFadeGradient.colors = [
-            UIColor.black.withAlphaComponent(0.7).cgColor,   // 70% black at top
-            UIColor.black.withAlphaComponent(0.65).cgColor,  // Gradual fade starts
-            UIColor.black.withAlphaComponent(0.5).cgColor,   
-            UIColor.black.withAlphaComponent(0.35).cgColor,  
-            UIColor.black.withAlphaComponent(0.2).cgColor,   
-            UIColor.black.withAlphaComponent(0.1).cgColor,   
-            UIColor.black.withAlphaComponent(0.05).cgColor,  
-            UIColor.black.withAlphaComponent(0.02).cgColor,  
-            UIColor.black.withAlphaComponent(0).cgColor      // Transparent at bottom
+            UIColor.black.withAlphaComponent(0.7).cgColor,
+            UIColor.black.withAlphaComponent(0.65).cgColor,
+            UIColor.black.withAlphaComponent(0.5).cgColor,
+            UIColor.black.withAlphaComponent(0.35).cgColor,
+            UIColor.black.withAlphaComponent(0.2).cgColor,
+            UIColor.black.withAlphaComponent(0.1).cgColor,
+            UIColor.black.withAlphaComponent(0.05).cgColor,
+            UIColor.black.withAlphaComponent(0.02).cgColor,
+            UIColor.black.withAlphaComponent(0).cgColor
         ]
-        // Ease-in curve positioning - more gradual at the bottom
         topFadeGradient.locations = [0, 0.2, 0.35, 0.5, 0.65, 0.75, 0.85, 0.95, 1]
         topFadeGradient.startPoint = CGPoint(x: 0.5, y: 0)
         topFadeGradient.endPoint = CGPoint(x: 0.5, y: 1)
@@ -302,12 +264,22 @@ class ChapterViewController: UIViewController {
             topFadeView.topAnchor.constraint(equalTo: view.topAnchor),
             topFadeView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             topFadeView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            topFadeView.heightAnchor.constraint(equalToConstant: 100) // Adjust height as needed
+            topFadeView.heightAnchor.constraint(equalToConstant: 100)
         ])
     }
     
+    private func updateGradientMask() {
+        topFadeGradient.frame = topFadeView.bounds
+        
+        let safeAreaTop = view.safeAreaInsets.top
+        if safeAreaTop > 0 {
+            topFadeView.constraints.first { $0.firstAttribute == .height }?.constant = safeAreaTop + 20
+        }
+    }
+    
+    // MARK: - Settings Overlay
+    
     private func setupSettingsOverlay() {
-        // Similar to ReadingViewController but simplified
         settingsDimmingView.translatesAutoresizingMaskIntoConstraints = false
         settingsDimmingView.backgroundColor = UIColor.black.withAlphaComponent(0.4)
         settingsDimmingView.alpha = 0
@@ -364,13 +336,13 @@ class ChapterViewController: UIViewController {
         settingsVC.didMove(toParent: self)
     }
     
+    // MARK: - Gesture Setup
+    
     private func setupGestures() {
         settingsPanGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handleSettingsPanGesture(_:)))
         settingsPanGestureRecognizer?.delegate = self
         view.addGestureRecognizer(settingsPanGestureRecognizer!)
         
-        // Ensure scroll view's pan gesture recognizer delegate is not modified
-        // The scroll view must remain its own pan gesture's delegate
         scrollView.panGestureRecognizer.require(toFail: settingsPanGestureRecognizer!)
     }
     
@@ -383,7 +355,51 @@ class ChapterViewController: UIViewController {
         )
     }
     
-    // MARK: - Settings Gestures
+    // MARK: - Chapter Content Management
+    
+    private func updateLabels(book: Book, chapter: Int) {
+        bookLabel.text = book.name
+        chapterLabel.text = "Chapter \(chapter)"
+        floatingIndicatorLabel.text = "\(book.name) • Chapter \(chapter)"
+    }
+    
+    private func clearExistingContent() {
+        versesStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        verseNumberLabels.forEach { $0.removeFromSuperview() }
+        verseNumberLabels.removeAll()
+    }
+    
+    private func getCachedOrCreateText(book: Book, chapter: Int, verses: [Verse]) -> String {
+        let cacheKey = "\(book.name)_\(chapter)"
+        
+        if let cachedText = chapterTextCache[cacheKey] {
+            return cachedText
+        } else {
+            let fullText = verses.map { $0.text }.joined(separator: " ")
+            chapterTextCache[cacheKey] = fullText
+            return fullText
+        }
+    }
+    
+    private func restoreScrollPosition(book: Book, chapter: Int) {
+        let savedPosition = UserDataManager.shared.getChapterScrollPosition(book: book.name, chapter: chapter)
+        if savedPosition > 0 {
+            scrollView.setContentOffset(CGPoint(x: 0, y: savedPosition), animated: false)
+        } else {
+            scrollView.setContentOffset(.zero, animated: false)
+        }
+    }
+    
+    private func updateReadingPosition(book: Book, chapter: Int) {
+        let savedPosition = UserDataManager.shared.getChapterScrollPosition(book: book.name, chapter: chapter)
+        UserDataManager.shared.saveReadingPosition(
+            book: book.name,
+            chapter: chapter,
+            scrollPosition: savedPosition
+        )
+    }
+    
+    // MARK: - Settings Gesture Handlers
     
     @objc private func handleSettingsPanGesture(_ gesture: UIPanGestureRecognizer) {
         let translation = gesture.translation(in: view)
@@ -507,38 +523,114 @@ class ChapterViewController: UIViewController {
         }
     }
     
-    // MARK: - Chapter Content Creation
+    // MARK: - Action Handlers
+    
+    @objc private func handleSettingsChanged() {
+        if let book = currentBook {
+            loadChapter(book: book, chapter: currentChapter)
+        }
+    }
+    
+    @objc private func bookTitleTapped() {
+        let bookVC = BookSelectionViewController()
+        bookVC.delegate = self
+        bookVC.modalPresentationStyle = .pageSheet
+        if let sheet = bookVC.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+        }
+        present(bookVC, animated: true)
+    }
+}
+
+// MARK: - Chapter Content Creation
+
+extension ChapterViewController {
     
     private func createChapterParagraphView(text: String, verses: [Verse] = []) -> UIView {
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
         container.clipsToBounds = false // Don't clip verse numbers in margin
         
-        // Get the first character (but don't remove it from the text yet)
         let firstChar = String(text.prefix(1)).uppercased()
         
-        // Create simple boxed drop cap placeholder with parchment-toned colors
+        let dropCapContainer = createDropCap(with: firstChar)
+        let textView = createTextView(with: text, verses: verses)
+        
+        container.addSubview(textView)
+        container.addSubview(dropCapContainer) // Add drop cap on top
+        
+        NSLayoutConstraint.activate([
+            // Drop cap container
+            dropCapContainer.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            dropCapContainer.topAnchor.constraint(equalTo: container.topAnchor),
+            dropCapContainer.widthAnchor.constraint(equalToConstant: 70),
+            dropCapContainer.heightAnchor.constraint(equalToConstant: 70),
+            
+            // Text view fills the container (with slight vertical offset)
+            textView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            textView.topAnchor.constraint(equalTo: container.topAnchor, constant: 3),
+            textView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            textView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        
+        // Position verse numbers after layout
+        if !verses.isEmpty {
+            textView.tag = 999 // Tag to identify this text view
+            
+            textView.setNeedsLayout()
+            textView.layoutIfNeeded()
+            container.setNeedsLayout()
+            container.layoutIfNeeded()
+            
+            DispatchQueue.main.async { [weak self] in
+                textView.layoutManager.ensureLayout(for: textView.textContainer)
+                self?.positionVerseNumbers(in: textView, container: container, verses: verses)
+                
+                if let visible = self?.verseNumbersVisible {
+                    UIView.animate(withDuration: 0.2) {
+                        self?.verseNumberLabels.forEach { label in
+                            label.alpha = visible ? 1.0 : 0.0
+                        }
+                    }
+                }
+            }
+        }
+        
+        return container
+    }
+    
+    private func createDropCap(with character: String) -> UIView {
         let dropCapContainer = UIView()
         dropCapContainer.translatesAutoresizingMaskIntoConstraints = false
-        dropCapContainer.backgroundColor = UIColor(red: 0.82, green: 0.72, blue: 0.58, alpha: 0.5) // Semi-transparent parchment tone
+        dropCapContainer.backgroundColor = UIColor(red: 0.82, green: 0.72, blue: 0.58, alpha: 0.5)
         dropCapContainer.layer.borderColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 1.0).cgColor
         dropCapContainer.layer.borderWidth = 2
         
         let dropCapLabel = UILabel()
         dropCapLabel.translatesAutoresizingMaskIntoConstraints = false
-        dropCapLabel.text = firstChar
-        // Use UnifrakturMaguntia at 60 points
+        dropCapLabel.text = character
+        
+        // Try gothic font, fallback to Cardo Bold
         let gothicFont = UIFont(name: "UnifrakturMaguntia-Book", size: 60) ??
                         UIFont(name: "UnifrakturMaguntia", size: 60) ??
                         UIFont(name: "Unifraktur Maguntia", size: 60)
         dropCapLabel.font = gothicFont ?? UIFont(name: "Cardo-Bold", size: 60) ?? .systemFont(ofSize: 60, weight: .bold)
         
-        dropCapLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0) // Dark text
+        dropCapLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0)
         dropCapLabel.textAlignment = .center
         
         dropCapContainer.addSubview(dropCapLabel)
         
-        // Create text view for proper text wrapping
+        NSLayoutConstraint.activate([
+            dropCapLabel.centerXAnchor.constraint(equalTo: dropCapContainer.centerXAnchor),
+            dropCapLabel.centerYAnchor.constraint(equalTo: dropCapContainer.centerYAnchor, constant: 5)
+        ])
+        
+        return dropCapContainer
+    }
+    
+    private func createTextView(with text: String, verses: [Verse]) -> UITextView {
         let textView = UITextView()
         textView.translatesAutoresizingMaskIntoConstraints = false
         textView.isEditable = false
@@ -547,26 +639,18 @@ class ChapterViewController: UIViewController {
         textView.textContainerInset = UIEdgeInsets.zero
         textView.textContainer.lineFragmentPadding = 0
         
-        // Create attributed string with verse markers
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = 10
         paragraphStyle.alignment = .left // Left-aligned for consistent verse number positioning
         
-        // Build attributed string with verse positions marked
         let attributedString = NSMutableAttributedString()
-        
-        // Remove first character for drop cap
         let textWithoutFirstChar = String(text.dropFirst())
         
-        // If we have verse data, create markers
         if !verses.isEmpty {
             for (index, verse) in verses.enumerated() {
                 let verseText = verse.text
-                
-                // For verse 1, account for the dropped first character
                 let adjustedText = index == 0 ? String(verseText.dropFirst()) : verseText
                 
-                // Add verse text with extra space between verses
                 let verseAttrString = NSAttributedString(
                     string: adjustedText + (index < verses.count - 1 ? "  " : ""), // Two spaces between verses
                     attributes: [
@@ -575,9 +659,6 @@ class ChapterViewController: UIViewController {
                         .paragraphStyle: paragraphStyle
                     ]
                 )
-                
-                // Store the range for this verse (skip verse 1 for numbering)
-                // Note: We'll create the actual labels during positioning, not here
                 
                 attributedString.append(verseAttrString)
             }
@@ -599,99 +680,33 @@ class ChapterViewController: UIViewController {
         let exclusionPath = UIBezierPath(rect: CGRect(x: 0, y: 0, width: 80, height: 70))
         textView.textContainer.exclusionPaths = [exclusionPath]
         
-        container.addSubview(textView)
-        container.addSubview(dropCapContainer) // Add drop cap on top
-        
-        // Don't add verse number labels yet - they'll be added during positioning
-        
-        NSLayoutConstraint.activate([
-            // Drop cap container
-            dropCapContainer.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            dropCapContainer.topAnchor.constraint(equalTo: container.topAnchor),
-            dropCapContainer.widthAnchor.constraint(equalToConstant: 70),
-            dropCapContainer.heightAnchor.constraint(equalToConstant: 70),
-            
-            // Drop cap label centered horizontally, moved down 5 pixels
-            dropCapLabel.centerXAnchor.constraint(equalTo: dropCapContainer.centerXAnchor),
-            dropCapLabel.centerYAnchor.constraint(equalTo: dropCapContainer.centerYAnchor, constant: 5),
-            
-            // Text view fills the container (with slight vertical offset)
-            textView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            textView.topAnchor.constraint(equalTo: container.topAnchor, constant: 3),
-            textView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            textView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
-        ])
-        
-        // Store references for positioning after layout
-        textView.tag = 999 // Tag to identify this text view
-        
-        // Store verse data for positioning after layout
-        if !verses.isEmpty {
-            // Force initial layout
-            textView.setNeedsLayout()
-            textView.layoutIfNeeded()
-            container.setNeedsLayout()
-            container.layoutIfNeeded()
-            
-            // Use layout manager's completion to know when text is ready
-            DispatchQueue.main.async { [weak self] in
-                // Ensure layout manager has finished
-                textView.layoutManager.ensureLayout(for: textView.textContainer)
-                
-                // Now position the verse numbers
-                self?.positionVerseNumbers(in: textView, container: container, verses: verses)
-                
-                // Apply current visibility state with animation
-                if let visible = self?.verseNumbersVisible {
-                    UIView.animate(withDuration: 0.2) {
-                        self?.verseNumberLabels.forEach { label in
-                            label.alpha = visible ? 1.0 : 0.0
-                        }
-                    }
-                }
-            }
-        }
-        
-        return container
+        return textView
     }
     
     private func positionVerseNumbers(in textView: UITextView, container: UIView, verses: [Verse]) {
         let layoutManager = textView.layoutManager
         let textContainer = textView.textContainer
         
-        // Ensure layout is complete
         layoutManager.ensureLayout(for: textContainer)
         
-        // Clear any existing verse labels
         verseNumberLabels.forEach { $0.removeFromSuperview() }
         verseNumberLabels.removeAll()
         
-        // Calculate position for each verse
         var currentLocation = 0
         
         for (index, verse) in verses.enumerated() {
             // Skip verse 1
             if verse.number == 1 {
-                currentLocation += index == 0 ? verse.text.count - 1 + 2 : verse.text.count + 2 // Account for dropped first char and double space
+                currentLocation += index == 0 ? verse.text.count - 1 + 2 : verse.text.count + 2
                 continue
             }
             
-            // Create verse number label
-            let verseLabel = UILabel()
-            verseLabel.text = "\(verse.number)"
-            verseLabel.font = UIFont(name: "Cardo-Bold", size: 11) ?? .systemFont(ofSize: 11, weight: .bold)
-            verseLabel.textColor = UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 1.0) // Same as main text
-            verseLabel.backgroundColor = .clear
-            verseLabel.alpha = 0 // Start hidden for animation
-            verseLabel.tag = verse.number
-            verseNumberLabels.append(verseLabel)
+            let verseLabel = createVerseNumberLabel(for: verse.number)
             
-            // Get the character range for this verse start
-            // Find the first non-whitespace character to handle line breaks properly
             var searchLocation = currentLocation
             let textString = textView.text as NSString
             
-            // Skip any leading whitespace to find the actual first character
+            // Skip leading whitespace
             while searchLocation < textString.length {
                 let char = textString.character(at: searchLocation)
                 if char != 32 && char != 10 && char != 13 { // Not space, newline, or carriage return
@@ -703,13 +718,10 @@ class ChapterViewController: UIViewController {
             let glyphRange = layoutManager.glyphRange(forCharacterRange: NSRange(location: searchLocation, length: 1), actualCharacterRange: nil)
             let rect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
             
-            // Position the label with better visibility
             verseLabel.sizeToFit()
             
-            // Position just above and to the left of the first character of the verse
-            // The rect is relative to the text view's text container, we need to add textView's position
-            let xPosition: CGFloat = rect.origin.x + textView.frame.origin.x - verseLabel.bounds.width - 2 // Move 2px more left
-            let yPosition = rect.origin.y + textView.frame.origin.y - verseLabel.bounds.height + 14 // Move 10px down
+            let xPosition: CGFloat = rect.origin.x + textView.frame.origin.x - verseLabel.bounds.width - 2
+            let yPosition = rect.origin.y + textView.frame.origin.y - verseLabel.bounds.height + 14
             
             verseLabel.frame = CGRect(
                 x: xPosition,
@@ -718,30 +730,23 @@ class ChapterViewController: UIViewController {
                 height: verseLabel.bounds.height
             )
             
-            // Add to container now that it's positioned
             container.addSubview(verseLabel)
-            verseLabel.layer.zPosition = 100 // Ensure they're on top
+            verseLabel.layer.zPosition = 100
             
-            // Update location for next verse (2 spaces between verses now)
-            currentLocation += verse.text.count + 2 // Add 2 for double space
+            currentLocation += verse.text.count + 2
         }
     }
     
-    @objc private func handleSettingsChanged() {
-        if let book = currentBook {
-            loadChapter(book: book, chapter: currentChapter)
-        }
-    }
-    
-    @objc private func bookTitleTapped() {
-        let bookVC = BookSelectionViewController()
-        bookVC.delegate = self
-        bookVC.modalPresentationStyle = .pageSheet
-        if let sheet = bookVC.sheetPresentationController {
-            sheet.detents = [.large()]
-            sheet.prefersGrabberVisible = true
-        }
-        present(bookVC, animated: true)
+    private func createVerseNumberLabel(for verseNumber: Int) -> UILabel {
+        let verseLabel = UILabel()
+        verseLabel.text = "\(verseNumber)"
+        verseLabel.font = UIFont(name: "Cardo-Bold", size: 11) ?? .systemFont(ofSize: 11, weight: .bold)
+        verseLabel.textColor = UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 1.0)
+        verseLabel.backgroundColor = .clear
+        verseLabel.alpha = 0 // Start hidden for animation
+        verseLabel.tag = verseNumber
+        verseNumberLabels.append(verseLabel)
+        return verseLabel
     }
 }
 
@@ -749,7 +754,6 @@ class ChapterViewController: UIViewController {
 
 extension ChapterViewController: BookSelectionDelegate {
     func didSelectBook(_ book: Book) {
-        // Post notification for chapter selection
         NotificationCenter.default.post(
             name: .chapterSelected,
             object: nil,
@@ -783,8 +787,6 @@ extension ChapterViewController: UIScrollViewDelegate {
                 scrollPosition: yOffset
             )
         }
-        
-        lastContentOffset = yOffset
     }
 }
 
@@ -792,16 +794,13 @@ extension ChapterViewController: UIScrollViewDelegate {
 
 extension ChapterViewController: UIGestureRecognizerDelegate {
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        // Only handle our settings pan gesture
         if gestureRecognizer == settingsPanGestureRecognizer && otherGestureRecognizer == scrollView.panGestureRecognizer {
             return scrollView.contentOffset.y <= 0
         }
-        
         return false
     }
     
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        // Only handle settings pan gesture - don't interfere with scroll view's gesture
         if gestureRecognizer == settingsPanGestureRecognizer {
             if let panGesture = gestureRecognizer as? UIPanGestureRecognizer {
                 let velocity = panGesture.velocity(in: view)

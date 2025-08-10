@@ -1,15 +1,14 @@
 import UIKit
 
 // MARK: - ChapterContainerViewController
-// Uses UIPageViewController to manage horizontal scrolling between chapters
 
+/// Manages horizontal chapter navigation using UIPageViewController
+/// Provides three-panel architecture: previous chapter, current chapter, next chapter
 class ChapterContainerViewController: UIViewController {
     
     // MARK: - Properties
     
     private var pageViewController: UIPageViewController!
-    
-    // Current book and navigation state
     private var currentBook: Book?
     private var currentChapterNumber: Int = 1
     
@@ -21,52 +20,34 @@ class ChapterContainerViewController: UIViewController {
         
         setupPageViewController()
         setupNotifications()
-        
-        // Load initial content
         loadLastReadingPosition()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
     // MARK: - Setup Methods
     
     private func setupPageViewController() {
-        // Create page view controller with horizontal scrolling
         pageViewController = UIPageViewController(
             transitionStyle: .scroll,
             navigationOrientation: .horizontal,
-            options: [.interPageSpacing: 3] // Small gap between pages
+            options: [.interPageSpacing: 3]
         )
         
         pageViewController.delegate = self
         pageViewController.dataSource = self
         
-        // Add as child view controller
         addChild(pageViewController)
         view.addSubview(pageViewController.view)
         pageViewController.view.frame = view.bounds
         pageViewController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         pageViewController.didMove(toParent: self)
         
-        // Customize page control appearance (hidden since we don't want dots)
+        // Hide page control dots - we don't want them for chapter navigation
         let pageControl = UIPageControl.appearance(whenContainedInInstancesOf: [ChapterContainerViewController.self])
         pageControl.isHidden = true
-        
-        // Ensure gesture recognition works properly
-        DispatchQueue.main.async { [weak self] in
-            // Access the scroll view after layout
-            for subview in self?.pageViewController.view.subviews ?? [] {
-                if let scrollView = subview as? UIScrollView {
-                    scrollView.isScrollEnabled = true
-                    scrollView.bounces = true
-                    scrollView.delaysContentTouches = false
-                    print("Found UIPageViewController's scroll view - enabled: \(scrollView.isScrollEnabled)")
-                    
-                    // Log gesture recognizers
-                    for gesture in scrollView.gestureRecognizers ?? [] {
-                        print("Gesture recognizer: \(type(of: gesture))")
-                    }
-                }
-            }
-        }
     }
     
     private func setupNotifications() {
@@ -85,21 +66,20 @@ class ChapterContainerViewController: UIViewController {
             currentBook = ScriptureManager.shared.book(named: position.bookName)
             currentChapterNumber = position.chapter
         } else {
-            // Default to Genesis 1
+            // Default to first available book, chapter 1
             currentBook = ScriptureManager.shared.books.first
             currentChapterNumber = 1
         }
         
-        // Set initial chapter
-        if let book = currentBook {
-            let chapterVC = createChapterViewController(book: book, chapter: currentChapterNumber)
-            pageViewController.setViewControllers(
-                [chapterVC],
-                direction: .forward,
-                animated: false,
-                completion: nil
-            )
-        }
+        guard let book = currentBook else { return }
+        
+        let chapterVC = createChapterViewController(book: book, chapter: currentChapterNumber)
+        pageViewController.setViewControllers(
+            [chapterVC],
+            direction: .forward,
+            animated: false,
+            completion: nil
+        )
     }
     
     private func createChapterViewController(book: Book, chapter: Int) -> ChapterViewController {
@@ -115,10 +95,8 @@ class ChapterContainerViewController: UIViewController {
         let chapter = viewController.getCurrentChapter()
         
         if chapter < book.chapters.count {
-            // Next chapter in same book
             return (book, chapter + 1)
         } else {
-            // First chapter of next book
             guard let nextBook = getNextBook(after: book) else { return nil }
             return (nextBook, 1)
         }
@@ -129,10 +107,8 @@ class ChapterContainerViewController: UIViewController {
         let chapter = viewController.getCurrentChapter()
         
         if chapter > 1 {
-            // Previous chapter in same book
             return (book, chapter - 1)
         } else {
-            // Last chapter of previous book
             guard let previousBook = getPreviousBook(before: book) else { return nil }
             return (previousBook, previousBook.chapters.count)
         }
@@ -150,7 +126,7 @@ class ChapterContainerViewController: UIViewController {
         return ScriptureManager.shared.books[currentIndex - 1]
     }
     
-    // MARK: - Notifications
+    // MARK: - Notification Handlers
     
     @objc private func handleChapterSelection(_ notification: Notification) {
         guard let book = notification.userInfo?["book"] as? Book,
@@ -161,7 +137,7 @@ class ChapterContainerViewController: UIViewController {
         
         let chapterVC = createChapterViewController(book: book, chapter: chapter)
         
-        // Determine direction based on whether we're going forward or backward
+        // Determine navigation direction for smooth animation
         var direction: UIPageViewController.NavigationDirection = .forward
         if let currentVC = pageViewController.viewControllers?.first as? ChapterViewController,
            let currentBook = currentVC.getCurrentBook() {
@@ -203,12 +179,7 @@ extension ChapterContainerViewController: UIPageViewControllerDataSource {
 
 extension ChapterContainerViewController: UIPageViewControllerDelegate {
     
-    func pageViewController(_ pageViewController: UIPageViewController, willTransitionTo pendingViewControllers: [UIViewController]) {
-        print("Starting page transition")
-    }
-    
     func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
-        print("Page transition finished - completed: \(completed)")
         
         guard completed,
               let currentVC = pageViewController.viewControllers?.first as? ChapterViewController,
@@ -217,7 +188,7 @@ extension ChapterContainerViewController: UIPageViewControllerDelegate {
         currentBook = book
         currentChapterNumber = currentVC.getCurrentChapter()
         
-        // Save reading position
+        // Save reading position when chapter changes
         UserDataManager.shared.saveReadingPosition(
             book: book.name,
             chapter: currentChapterNumber,
