@@ -22,15 +22,27 @@ class ReadingViewController: UIViewController {
         view.backgroundColor = .black // Black for overscroll areas
         scrollView.contentInsetAdjustmentBehavior = .never // Disable automatic inset adjustment
         
-        // Debug: Print ALL available fonts to find UnifrakturMaguntia
-        print("=== ALL FONT FAMILIES ===")
+        // Debug: Check if font file exists in bundle
+        if let fontURL = Bundle.main.url(forResource: "UnifrakturMaguntia-Regular", withExtension: "ttf") {
+            print("✅ UnifrakturMaguntia font file found at: \(fontURL)")
+        } else {
+            print("❌ UnifrakturMaguntia font file NOT found in bundle")
+        }
+        
+        // Debug: Print fonts containing specific keywords
+        print("=== SEARCHING FOR FONTS ===")
         for family in UIFont.familyNames.sorted() {
-            print("Font family: \(family)")
-            for font in UIFont.fontNames(forFamilyName: family) {
-                print("  - \(font)")
+            if family.lowercased().contains("unifraktur") || 
+               family.lowercased().contains("maguntia") || 
+               family.lowercased().contains("gothic") ||
+               family.lowercased().contains("medieval") {
+                print("Found relevant font family: \(family)")
+                for font in UIFont.fontNames(forFamilyName: family) {
+                    print("  - \(font)")
+                }
             }
         }
-        print("=== END FONT FAMILIES ===")
+        print("=== END FONT SEARCH ===")
         
         setupViews()
         setupGestures()
@@ -99,12 +111,13 @@ class ReadingViewController: UIViewController {
         topFadeView.translatesAutoresizingMaskIntoConstraints = false
         topFadeView.isUserInteractionEnabled = false
         
-        // Configure gradient layer - fade from black to transparent
+        // Configure gradient layer - fade from 70% black to transparent
         topFadeGradient.colors = [
-            UIColor.black.cgColor,
-            UIColor.black.withAlphaComponent(0).cgColor
+            UIColor.black.withAlphaComponent(0.7).cgColor,  // 70% black at top
+            UIColor.black.withAlphaComponent(0.3).cgColor,  // 30% in middle
+            UIColor.black.withAlphaComponent(0).cgColor     // Transparent at bottom
         ]
-        topFadeGradient.locations = [0, 1]
+        topFadeGradient.locations = [0, 0.5, 1]
         topFadeGradient.startPoint = CGPoint(x: 0.5, y: 0)
         topFadeGradient.endPoint = CGPoint(x: 0.5, y: 1)
         
@@ -282,10 +295,13 @@ class ReadingViewController: UIViewController {
         let dropCapLabel = UILabel()
         dropCapLabel.translatesAutoresizingMaskIntoConstraints = false
         dropCapLabel.text = firstChar
-        // Try different font name variations
+        // Try different gothic/medieval fonts
         let gothicFont = UIFont(name: "UnifrakturMaguntia-Regular", size: 56) ??
                         UIFont(name: "Unifraktur Maguntia", size: 56) ??
-                        UIFont(name: "UnifrakturMaguntia", size: 56)
+                        UIFont(name: "UnifrakturMaguntia", size: 56) ??
+                        UIFont(name: "MedievalSharp-Regular", size: 56) ??
+                        UIFont(name: "MedievalSharp", size: 56) ??
+                        UIFont(name: "Medieval Sharp", size: 56)
         dropCapLabel.font = gothicFont ?? UIFont(name: "Cardo-Bold", size: 56) ?? .systemFont(ofSize: 56, weight: .bold)
         
         // Debug print to see which font is being used
