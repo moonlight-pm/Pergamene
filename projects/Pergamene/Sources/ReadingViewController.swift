@@ -16,7 +16,7 @@ class ReadingViewController: UIViewController {
     private var chapterTextCache: [String: String] = [:]
     private var chapterHeaderTopConstraint: NSLayoutConstraint?
     private var verseNumberLabels: [UILabel] = []
-    private var verseNumbersVisible = false
+    private var verseNumbersVisible = true // Default to visible
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -63,9 +63,11 @@ class ReadingViewController: UIViewController {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.backgroundColor = .clear
         scrollView.delegate = self
+        scrollView.clipsToBounds = false // Don't clip content
         
         contentView.translatesAutoresizingMaskIntoConstraints = false
         contentView.backgroundColor = UIColor.parchmentTexture // Texture on content view
+        contentView.clipsToBounds = false // Don't clip verse numbers
         
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
@@ -166,6 +168,7 @@ class ReadingViewController: UIViewController {
         versesStackView.axis = .vertical
         versesStackView.spacing = 12
         versesStackView.alignment = .fill
+        versesStackView.clipsToBounds = false // Don't clip verse numbers
         
         contentView.addSubview(versesStackView)
         
@@ -270,6 +273,7 @@ class ReadingViewController: UIViewController {
     private func createChapterParagraphView(text: String, verses: [Verse] = []) -> UIView {
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
+        container.clipsToBounds = false // Don't clip verse numbers in margin
         
         // Get the first character (but don't remove it from the text yet)
         let firstChar = String(text.prefix(1)).uppercased()
@@ -307,7 +311,7 @@ class ReadingViewController: UIViewController {
         // Create attributed string with verse markers
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = 10
-        paragraphStyle.alignment = .justified
+        paragraphStyle.alignment = .left // Left-aligned for consistent verse number positioning
         
         // Build attributed string with verse positions marked
         let attributedString = NSMutableAttributedString()
@@ -325,9 +329,9 @@ class ReadingViewController: UIViewController {
                 // For verse 1, account for the dropped first character
                 let adjustedText = index == 0 ? String(verseText.dropFirst()) : verseText
                 
-                // Add verse text
+                // Add verse text with extra space between verses
                 let verseAttrString = NSAttributedString(
-                    string: adjustedText + (index < verses.count - 1 ? " " : ""),
+                    string: adjustedText + (index < verses.count - 1 ? "  " : ""), // Two spaces between verses
                     attributes: [
                         .font: UIFont(name: "Cardo-Regular", size: 20) ?? .systemFont(ofSize: 18),
                         .foregroundColor: UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 1.0),
@@ -342,9 +346,9 @@ class ReadingViewController: UIViewController {
                     // Create verse number label
                     let verseLabel = UILabel()
                     verseLabel.text = "\(verse.number)"
-                    verseLabel.font = UIFont(name: "Cardo-Regular", size: 12) ?? .systemFont(ofSize: 12)
-                    verseLabel.textColor = UIColor(red: 0.7, green: 0.1, blue: 0.1, alpha: 1.0) // Red color
-                    verseLabel.alpha = 0 // Start hidden
+                    verseLabel.font = UIFont(name: "Cardo-Bold", size: 11) ?? .systemFont(ofSize: 11, weight: .bold)
+                    verseLabel.textColor = UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 1.0) // Same as main text
+                    verseLabel.alpha = 1.0 // Start visible (controlled by verseNumbersVisible flag)
                     verseLabel.translatesAutoresizingMaskIntoConstraints = false
                     
                     // We'll position these after the text view is laid out
@@ -375,9 +379,10 @@ class ReadingViewController: UIViewController {
         container.addSubview(textView)
         container.addSubview(dropCapContainer) // Add drop cap on top
         
-        // Add verse number labels to container
+        // Add verse number labels to container (after other views so they're on top)
         verseNumberLabels.forEach { label in
             container.addSubview(label)
+            label.layer.zPosition = 100 // Ensure they're on top
         }
         
         NSLayoutConstraint.activate([
@@ -398,10 +403,25 @@ class ReadingViewController: UIViewController {
             textView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
         
+        // Store references to text view and verses for later positioning
+        textView.tag = 999 // Tag to identify this text view
+        
         // Position verse numbers after layout
         if !verses.isEmpty {
-            DispatchQueue.main.async { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                // Ensure the text view has fully laid out
+                textView.setNeedsLayout()
+                textView.layoutIfNeeded()
+                container.setNeedsLayout()
+                container.layoutIfNeeded()
                 self?.positionVerseNumbers(in: textView, container: container, verses: verses)
+                
+                // Apply current visibility state
+                if let visible = self?.verseNumbersVisible {
+                    self?.verseNumberLabels.forEach { label in
+                        label.alpha = visible ? 1.0 : 0.0
+                    }
+                }
             }
         }
         
@@ -471,6 +491,7 @@ class ReadingViewController: UIViewController {
         // Add tap gesture for verse numbers
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
         tapGesture.numberOfTapsRequired = 1
+        tapGesture.cancelsTouchesInView = false // Allow other gestures to work
         scrollView.addGestureRecognizer(tapGesture)
     }
     
@@ -500,40 +521,60 @@ class ReadingViewController: UIViewController {
         let layoutManager = textView.layoutManager
         let textContainer = textView.textContainer
         
+        // Force layout to ensure we have accurate positions
+        textView.layoutIfNeeded()
+        container.layoutIfNeeded()
+        
         // Calculate position for each verse
         var currentLocation = 0
         
         for (index, verse) in verses.enumerated() {
             // Skip verse 1
             if verse.number == 1 {
-                currentLocation += index == 0 ? verse.text.count - 1 : verse.text.count + 1 // Account for dropped first char and space
+                currentLocation += index == 0 ? verse.text.count - 1 + 2 : verse.text.count + 2 // Account for dropped first char and double space
                 continue
             }
             
             // Find the verse label
             guard let verseLabel = verseNumberLabels.first(where: { $0.tag == verse.number }) else {
-                currentLocation += verse.text.count + 1 // Add 1 for space
+                currentLocation += verse.text.count + 2 // Add 2 for double space
                 continue
             }
             
             // Get the character range for this verse start
-            let glyphRange = layoutManager.glyphRange(forCharacterRange: NSRange(location: currentLocation, length: 1), actualCharacterRange: nil)
+            // Find the first non-whitespace character to handle line breaks properly
+            var searchLocation = currentLocation
+            let textString = textView.text as NSString
+            
+            // Skip any leading whitespace to find the actual first character
+            while searchLocation < textString.length {
+                let char = textString.character(at: searchLocation)
+                if char != 32 && char != 10 && char != 13 { // Not space, newline, or carriage return
+                    break
+                }
+                searchLocation += 1
+            }
+            
+            let glyphRange = layoutManager.glyphRange(forCharacterRange: NSRange(location: searchLocation, length: 1), actualCharacterRange: nil)
             let rect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
             
-            // Position the label to the left and slightly above the first character
+            // Position the label with better visibility
             verseLabel.sizeToFit()
-            let xPosition = rect.origin.x - verseLabel.bounds.width - 5
-            let yPosition = rect.origin.y + textView.frame.origin.y - 2
+            
+            // Position just above and to the left of the first character of the verse
+            // The rect is relative to the text view's text container, we need to add textView's position
+            let xPosition: CGFloat = rect.origin.x + textView.frame.origin.x - verseLabel.bounds.width - 2 // Move 2px more left
+            let yPosition = rect.origin.y + textView.frame.origin.y - verseLabel.bounds.height + 14 // Move 10px down
             
             verseLabel.frame = CGRect(
-                x: max(-15, xPosition), // Don't go too far left
+                x: xPosition,
                 y: yPosition,
                 width: verseLabel.bounds.width,
                 height: verseLabel.bounds.height
             )
             
-            // Update location for next verse
-            currentLocation += verse.text.count + 1 // Add 1 for space
+            // Update location for next verse (2 spaces between verses now)
+            currentLocation += verse.text.count + 2 // Add 2 for double space
         }
     }
     
