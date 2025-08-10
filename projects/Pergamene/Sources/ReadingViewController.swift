@@ -12,11 +12,13 @@ class ReadingViewController: UIViewController {
     private var currentBook: Book?
     private var currentChapter: Int = 1
     private var chapterTextCache: [String: String] = [:]
+    private var chapterHeaderTopConstraint: NSLayoutConstraint?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         view.backgroundColor = UIColor.parchmentSolid // Solid color for main view
+        scrollView.contentInsetAdjustmentBehavior = .never // Disable automatic inset adjustment
         
         // Debug: Print available fonts
         for family in UIFont.familyNames.sorted() {
@@ -32,6 +34,12 @@ class ReadingViewController: UIViewController {
         setupGestures()
         setupNotifications()
         loadLastReadingPosition()
+    }
+    
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        // Update top padding based on safe area
+        chapterHeaderTopConstraint?.constant = view.safeAreaInsets.top + 20
     }
     
     private func setupViews() {
@@ -52,10 +60,10 @@ class ReadingViewController: UIViewController {
         scrollView.addSubview(contentView)
         
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor), // Extend into safe area
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor), // Extend into safe area
             
             contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
             contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
@@ -89,8 +97,10 @@ class ReadingViewController: UIViewController {
         chapterHeaderView.addSubview(bookLabel)
         chapterHeaderView.addSubview(chapterLabel)
         
+        chapterHeaderTopConstraint = chapterHeaderView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20)
+        
         NSLayoutConstraint.activate([
-            chapterHeaderView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
+            chapterHeaderTopConstraint!,
             chapterHeaderView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             chapterHeaderView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             chapterHeaderView.heightAnchor.constraint(equalToConstant: 80),
@@ -216,18 +226,18 @@ class ReadingViewController: UIViewController {
         // Get the first character (but don't remove it from the text yet)
         let firstChar = String(text.prefix(1)).uppercased()
         
-        // Create simple boxed drop cap placeholder with inverted colors
+        // Create simple boxed drop cap placeholder with parchment-toned colors
         let dropCapContainer = UIView()
         dropCapContainer.translatesAutoresizingMaskIntoConstraints = false
-        dropCapContainer.backgroundColor = UIColor(red: 0.25, green: 0.18, blue: 0.12, alpha: 1.0) // Dark brown background
-        dropCapContainer.layer.borderColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0).cgColor
+        dropCapContainer.backgroundColor = UIColor(red: 0.82, green: 0.72, blue: 0.58, alpha: 0.5) // Semi-transparent parchment tone
+        dropCapContainer.layer.borderColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 1.0).cgColor
         dropCapContainer.layer.borderWidth = 2
         
         let dropCapLabel = UILabel()
         dropCapLabel.translatesAutoresizingMaskIntoConstraints = false
         dropCapLabel.text = firstChar
         dropCapLabel.font = UIFont(name: "Cardo-Bold", size: 56) ?? .systemFont(ofSize: 56, weight: .bold)
-        dropCapLabel.textColor = UIColor(red: 0.95, green: 0.93, blue: 0.88, alpha: 1.0) // Light text on dark background
+        dropCapLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0) // Dark text
         dropCapLabel.textAlignment = .center
         
         dropCapContainer.addSubview(dropCapLabel)

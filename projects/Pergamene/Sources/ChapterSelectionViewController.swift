@@ -135,15 +135,15 @@ class ChapterCell: UICollectionViewCell {
     }
     
     private func setupViews() {
-        contentView.backgroundColor = UIColor(red: 0.3, green: 0.22, blue: 0.15, alpha: 0.9) // Dark brown background
+        contentView.backgroundColor = UIColor(red: 0.82, green: 0.72, blue: 0.58, alpha: 0.6) // Semi-transparent parchment tone
         contentView.layer.cornerRadius = 8
         contentView.layer.borderWidth = 1
-        contentView.layer.borderColor = UIColor(red: 0.2, green: 0.14, blue: 0.08, alpha: 1.0).cgColor // Darker border
+        contentView.layer.borderColor = UIColor(red: 0.45, green: 0.35, blue: 0.25, alpha: 0.8).cgColor
         
         label.translatesAutoresizingMaskIntoConstraints = false
         label.textAlignment = .center
         label.font = UIFont(name: "Cardo-Bold", size: 20) ?? .systemFont(ofSize: 18, weight: .medium)
-        label.textColor = UIColor(red: 0.95, green: 0.93, blue: 0.88, alpha: 1.0) // Light text on dark background
+        label.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0) // Dark text
         
         bookmarkIndicator.translatesAutoresizingMaskIntoConstraints = false
         bookmarkIndicator.backgroundColor = UIColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1.0)
@@ -177,8 +177,8 @@ class ChapterCell: UICollectionViewCell {
             UIView.animate(withDuration: 0.1) {
                 self.contentView.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.95, y: 0.95) : .identity
                 self.contentView.backgroundColor = self.isHighlighted ? 
-                    UIColor(red: 0.25, green: 0.18, blue: 0.12, alpha: 1.0) : 
-                    UIColor(red: 0.3, green: 0.22, blue: 0.15, alpha: 0.9)
+                    UIColor(red: 0.75, green: 0.65, blue: 0.51, alpha: 0.8) : 
+                    UIColor(red: 0.82, green: 0.72, blue: 0.58, alpha: 0.6)
             }
         }
     }
