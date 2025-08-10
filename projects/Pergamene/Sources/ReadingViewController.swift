@@ -340,21 +340,7 @@ class ReadingViewController: UIViewController {
                 )
                 
                 // Store the range for this verse (skip verse 1 for numbering)
-                if verse.number > 1 {
-                    let range = NSRange(location: attributedString.length, length: 0)
-                    
-                    // Create verse number label
-                    let verseLabel = UILabel()
-                    verseLabel.text = "\(verse.number)"
-                    verseLabel.font = UIFont(name: "Cardo-Bold", size: 11) ?? .systemFont(ofSize: 11, weight: .bold)
-                    verseLabel.textColor = UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 1.0) // Same as main text
-                    verseLabel.alpha = 1.0 // Start visible (controlled by verseNumbersVisible flag)
-                    verseLabel.translatesAutoresizingMaskIntoConstraints = false
-                    
-                    // We'll position these after the text view is laid out
-                    verseLabel.tag = verse.number
-                    verseNumberLabels.append(verseLabel)
-                }
+                // Note: We'll create the actual labels during positioning, not here
                 
                 attributedString.append(verseAttrString)
             }
@@ -379,11 +365,7 @@ class ReadingViewController: UIViewController {
         container.addSubview(textView)
         container.addSubview(dropCapContainer) // Add drop cap on top
         
-        // Add verse number labels to container (after other views so they're on top)
-        verseNumberLabels.forEach { label in
-            container.addSubview(label)
-            label.layer.zPosition = 100 // Ensure they're on top
-        }
+        // Don't add verse number labels yet - they'll be added during positioning
         
         NSLayoutConstraint.activate([
             // Drop cap container
@@ -403,23 +385,31 @@ class ReadingViewController: UIViewController {
             textView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
         
-        // Store references to text view and verses for later positioning
+        // Store references for positioning after layout
         textView.tag = 999 // Tag to identify this text view
         
-        // Position verse numbers after layout
+        // Store verse data for positioning after layout
         if !verses.isEmpty {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                // Ensure the text view has fully laid out
-                textView.setNeedsLayout()
-                textView.layoutIfNeeded()
-                container.setNeedsLayout()
-                container.layoutIfNeeded()
+            // Force initial layout
+            textView.setNeedsLayout()
+            textView.layoutIfNeeded()
+            container.setNeedsLayout()
+            container.layoutIfNeeded()
+            
+            // Use layout manager's completion to know when text is ready
+            DispatchQueue.main.async { [weak self] in
+                // Ensure layout manager has finished
+                textView.layoutManager.ensureLayout(for: textView.textContainer)
+                
+                // Now position the verse numbers
                 self?.positionVerseNumbers(in: textView, container: container, verses: verses)
                 
-                // Apply current visibility state
+                // Apply current visibility state with animation
                 if let visible = self?.verseNumbersVisible {
-                    self?.verseNumberLabels.forEach { label in
-                        label.alpha = visible ? 1.0 : 0.0
+                    UIView.animate(withDuration: 0.2) {
+                        self?.verseNumberLabels.forEach { label in
+                            label.alpha = visible ? 1.0 : 0.0
+                        }
                     }
                 }
             }
@@ -521,9 +511,12 @@ class ReadingViewController: UIViewController {
         let layoutManager = textView.layoutManager
         let textContainer = textView.textContainer
         
-        // Force layout to ensure we have accurate positions
-        textView.layoutIfNeeded()
-        container.layoutIfNeeded()
+        // Ensure layout is complete
+        layoutManager.ensureLayout(for: textContainer)
+        
+        // Clear any existing verse labels
+        verseNumberLabels.forEach { $0.removeFromSuperview() }
+        verseNumberLabels.removeAll()
         
         // Calculate position for each verse
         var currentLocation = 0
@@ -535,11 +528,15 @@ class ReadingViewController: UIViewController {
                 continue
             }
             
-            // Find the verse label
-            guard let verseLabel = verseNumberLabels.first(where: { $0.tag == verse.number }) else {
-                currentLocation += verse.text.count + 2 // Add 2 for double space
-                continue
-            }
+            // Create verse number label
+            let verseLabel = UILabel()
+            verseLabel.text = "\(verse.number)"
+            verseLabel.font = UIFont(name: "Cardo-Bold", size: 11) ?? .systemFont(ofSize: 11, weight: .bold)
+            verseLabel.textColor = UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 1.0) // Same as main text
+            verseLabel.backgroundColor = .clear
+            verseLabel.alpha = 0 // Start hidden for animation
+            verseLabel.tag = verse.number
+            verseNumberLabels.append(verseLabel)
             
             // Get the character range for this verse start
             // Find the first non-whitespace character to handle line breaks properly
@@ -572,6 +569,10 @@ class ReadingViewController: UIViewController {
                 width: verseLabel.bounds.width,
                 height: verseLabel.bounds.height
             )
+            
+            // Add to container now that it's positioned
+            container.addSubview(verseLabel)
+            verseLabel.layer.zPosition = 100 // Ensure they're on top
             
             // Update location for next verse (2 spaces between verses now)
             currentLocation += verse.text.count + 2 // Add 2 for double space
