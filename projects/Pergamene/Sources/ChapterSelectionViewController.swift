@@ -31,8 +31,8 @@ class ChapterSelectionViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Parchment background
-        view.backgroundColor = UIColor(red: 0.98, green: 0.97, blue: 0.94, alpha: 1.0)
+        // Parchment texture background
+        view.backgroundColor = UIColor.parchmentTexture
         
         setupTitle()
         setupCollectionView()
@@ -43,7 +43,7 @@ class ChapterSelectionViewController: UIViewController {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.text = book.name
         titleLabel.font = UIFont(name: "Cardo-Bold", size: 24) ?? .systemFont(ofSize: 24, weight: .bold)
-        titleLabel.textColor = UIColor(red: 0.4, green: 0.3, blue: 0.2, alpha: 1.0)
+        titleLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0) // Much darker
         titleLabel.textAlignment = .center
         
         view.addSubview(titleLabel)
@@ -135,15 +135,15 @@ class ChapterCell: UICollectionViewCell {
     }
     
     private func setupViews() {
-        contentView.backgroundColor = UIColor(red: 0.95, green: 0.93, blue: 0.88, alpha: 1.0)
+        contentView.backgroundColor = UIColor(white: 1.0, alpha: 0.7) // Semi-transparent white
         contentView.layer.cornerRadius = 8
         contentView.layer.borderWidth = 1
-        contentView.layer.borderColor = UIColor(red: 0.6, green: 0.4, blue: 0.2, alpha: 0.3).cgColor
+        contentView.layer.borderColor = UIColor(red: 0.3, green: 0.2, blue: 0.1, alpha: 0.5).cgColor // Darker border
         
         label.translatesAutoresizingMaskIntoConstraints = false
         label.textAlignment = .center
         label.font = UIFont(name: "Cardo-Bold", size: 20) ?? .systemFont(ofSize: 18, weight: .medium)
-        label.textColor = UIColor(red: 0.4, green: 0.3, blue: 0.2, alpha: 1.0)
+        label.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0) // Much darker
         
         bookmarkIndicator.translatesAutoresizingMaskIntoConstraints = false
         bookmarkIndicator.backgroundColor = UIColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1.0)
@@ -177,8 +177,8 @@ class ChapterCell: UICollectionViewCell {
             UIView.animate(withDuration: 0.1) {
                 self.contentView.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.95, y: 0.95) : .identity
                 self.contentView.backgroundColor = self.isHighlighted ? 
-                    UIColor(red: 0.9, green: 0.85, blue: 0.75, alpha: 1.0) : 
-                    UIColor(red: 0.95, green: 0.93, blue: 0.88, alpha: 1.0)
+                    UIColor(white: 1.0, alpha: 0.9) : 
+                    UIColor(white: 1.0, alpha: 0.7)
             }
         }
     }

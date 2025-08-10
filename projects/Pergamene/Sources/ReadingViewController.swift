@@ -16,7 +16,7 @@ class ReadingViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        view.backgroundColor = UIColor(red: 0.98, green: 0.97, blue: 0.94, alpha: 1.0)
+        view.backgroundColor = UIColor.parchmentTexture
         
         // Debug: Print available fonts
         for family in UIFont.familyNames.sorted() {
@@ -42,7 +42,7 @@ class ReadingViewController: UIViewController {
     
     private func setupScrollView() {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.backgroundColor = UIColor(red: 0.98, green: 0.97, blue: 0.94, alpha: 1.0)
+        scrollView.backgroundColor = .clear
         scrollView.delegate = self
         
         contentView.translatesAutoresizingMaskIntoConstraints = false
@@ -75,13 +75,13 @@ class ReadingViewController: UIViewController {
         
         bookLabel.translatesAutoresizingMaskIntoConstraints = false
         bookLabel.font = UIFont(name: "Cardo-Bold", size: 26) ?? .systemFont(ofSize: 24, weight: .semibold)
-        bookLabel.textColor = UIColor(red: 0.4, green: 0.3, blue: 0.2, alpha: 1.0)
+        bookLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0) // Much darker
         bookLabel.textAlignment = .center
         bookLabel.isUserInteractionEnabled = true
         
         chapterLabel.translatesAutoresizingMaskIntoConstraints = false
         chapterLabel.font = UIFont(name: "Cardo-Regular", size: 20) ?? .systemFont(ofSize: 18, weight: .regular)
-        chapterLabel.textColor = UIColor(red: 0.5, green: 0.4, blue: 0.3, alpha: 1.0)
+        chapterLabel.textColor = UIColor(red: 0.25, green: 0.18, blue: 0.12, alpha: 1.0) // Darker
         chapterLabel.textAlignment = .center
         
         contentView.addSubview(chapterHeaderView)
@@ -218,7 +218,7 @@ class ReadingViewController: UIViewController {
         // Create simple boxed drop cap placeholder
         let dropCapContainer = UIView()
         dropCapContainer.translatesAutoresizingMaskIntoConstraints = false
-        dropCapContainer.backgroundColor = UIColor(red: 0.98, green: 0.97, blue: 0.94, alpha: 1.0)
+        dropCapContainer.backgroundColor = UIColor.parchmentSolid
         dropCapContainer.layer.borderColor = UIColor(red: 0.5, green: 0.35, blue: 0.2, alpha: 1.0).cgColor
         dropCapContainer.layer.borderWidth = 2
         
@@ -226,7 +226,7 @@ class ReadingViewController: UIViewController {
         dropCapLabel.translatesAutoresizingMaskIntoConstraints = false
         dropCapLabel.text = firstChar
         dropCapLabel.font = UIFont(name: "Cardo-Bold", size: 56) ?? .systemFont(ofSize: 56, weight: .bold)
-        dropCapLabel.textColor = UIColor(red: 0.4, green: 0.3, blue: 0.2, alpha: 1.0)
+        dropCapLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0) // Much darker
         dropCapLabel.textAlignment = .center
         
         dropCapContainer.addSubview(dropCapLabel)
@@ -252,7 +252,7 @@ class ReadingViewController: UIViewController {
             string: spacedText,
             attributes: [
                 .font: UIFont(name: "Cardo-Regular", size: 20) ?? .systemFont(ofSize: 18),
-                .foregroundColor: UIColor(red: 0.2, green: 0.15, blue: 0.1, alpha: 1.0),
+                .foregroundColor: UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 1.0), // Almost black
                 .paragraphStyle: paragraphStyle
             ]
         )

@@ -23,8 +23,8 @@ class BookSelectionViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Parchment background
-        view.backgroundColor = UIColor(red: 0.98, green: 0.97, blue: 0.94, alpha: 1.0)
+        // Parchment texture background
+        view.backgroundColor = UIColor.parchmentTexture
         
         setupViews()
         loadBooks()
@@ -35,7 +35,7 @@ class BookSelectionViewController: UIViewController {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.text = "Select Book"
         titleLabel.font = UIFont(name: "Cardo-Bold", size: 28) ?? .systemFont(ofSize: 28, weight: .bold)
-        titleLabel.textColor = UIColor(red: 0.4, green: 0.3, blue: 0.2, alpha: 1.0)
+        titleLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0) // Much darker
         titleLabel.textAlignment = .center
         
         // Scroll view setup
@@ -50,7 +50,7 @@ class BookSelectionViewController: UIViewController {
         oldTestamentLabel.translatesAutoresizingMaskIntoConstraints = false
         oldTestamentLabel.text = "Old Testament"
         oldTestamentLabel.font = UIFont(name: "Cardo-Bold", size: 22) ?? .systemFont(ofSize: 22, weight: .semibold)
-        oldTestamentLabel.textColor = UIColor(red: 0.5, green: 0.35, blue: 0.2, alpha: 1.0)
+        oldTestamentLabel.textColor = UIColor(red: 0.2, green: 0.12, blue: 0.05, alpha: 1.0) // Darker
         
         oldTestamentStack.translatesAutoresizingMaskIntoConstraints = false
         oldTestamentStack.axis = .vertical
@@ -61,7 +61,7 @@ class BookSelectionViewController: UIViewController {
         newTestamentLabel.translatesAutoresizingMaskIntoConstraints = false
         newTestamentLabel.text = "New Testament"
         newTestamentLabel.font = UIFont(name: "Cardo-Bold", size: 22) ?? .systemFont(ofSize: 22, weight: .semibold)
-        newTestamentLabel.textColor = UIColor(red: 0.5, green: 0.35, blue: 0.2, alpha: 1.0)
+        newTestamentLabel.textColor = UIColor(red: 0.2, green: 0.12, blue: 0.05, alpha: 1.0) // Darker
         
         newTestamentStack.translatesAutoresizingMaskIntoConstraints = false
         newTestamentStack.axis = .vertical
@@ -142,14 +142,14 @@ class BookSelectionViewController: UIViewController {
         
         let titleAttributes: [NSAttributedString.Key: Any] = [
             .font: UIFont(name: "Cardo-Regular", size: 18) ?? .systemFont(ofSize: 18),
-            .foregroundColor: UIColor(red: 0.3, green: 0.25, blue: 0.2, alpha: 1.0),
+            .foregroundColor: UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0), // Much darker
             .paragraphStyle: paragraphStyle
         ]
         
         let chapterCount = book.chapters.count == 1 ? "1 chapter" : "\(book.chapters.count) chapters"
         let subtitleAttributes: [NSAttributedString.Key: Any] = [
             .font: UIFont(name: "Cardo-Regular", size: 14) ?? .systemFont(ofSize: 14),
-            .foregroundColor: UIColor(red: 0.5, green: 0.4, blue: 0.3, alpha: 0.8),
+            .foregroundColor: UIColor(red: 0.25, green: 0.18, blue: 0.12, alpha: 0.9), // Darker
             .paragraphStyle: paragraphStyle
         ]
         
@@ -178,7 +178,7 @@ class BookSelectionViewController: UIViewController {
     
     @objc private func bookButtonTouchDown(_ sender: UIButton) {
         UIView.animate(withDuration: 0.1) {
-            sender.backgroundColor = UIColor(red: 0.93, green: 0.91, blue: 0.86, alpha: 1.0)
+            sender.backgroundColor = UIColor(white: 1.0, alpha: 0.3) // Semi-transparent white
         }
     }
     
