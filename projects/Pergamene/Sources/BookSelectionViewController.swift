@@ -193,8 +193,7 @@ class BookSelectionViewController: UIViewController {
         
         // If book has only one chapter, select it directly
         if book.chapters.count == 1 {
-            // Post notification to load chapter first
-            delegate?.didSelectBook(book)
+            // Post notification to load chapter first (don't call delegate here)
             NotificationCenter.default.post(
                 name: .chapterSelected,
                 object: nil,
@@ -223,7 +222,7 @@ class BookSelectionViewController: UIViewController {
 
 extension BookSelectionViewController: ChapterSelectionDelegate {
     func didSelectChapter(_ chapter: Int, in book: Book) {
-        // Post notification to load chapter first
+        // Post notification to load chapter first (don't call delegate here)
         NotificationCenter.default.post(
             name: .chapterSelected,
             object: nil,
@@ -233,7 +232,6 @@ extension BookSelectionViewController: ChapterSelectionDelegate {
         // Small delay to ensure chapter loads before dismissing
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             self?.presentedViewController?.dismiss(animated: true)
-            self?.delegate?.didSelectBook(book)
             self?.dismiss(animated: true)
         }
     }
