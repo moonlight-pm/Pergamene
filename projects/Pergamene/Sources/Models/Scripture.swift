@@ -41,27 +41,49 @@ class ScriptureManager {
     private func loadScripture() {
         guard !isLoaded else { return }
         
-        guard let url = Bundle.main.url(forResource: plistFileName, withExtension: "plist"),
-              let data = try? Data(contentsOf: url) else {
-            print("Failed to load scripture plist")
-            return
+        var allBooks: [Book] = []
+        let decoder = PropertyListDecoder()
+        
+        // Load Old Testament
+        if let url = Bundle.main.url(forResource: plistFileName, withExtension: "plist"),
+           let data = try? Data(contentsOf: url) {
+            do {
+                let otData = try decoder.decode(ScriptureData.self, from: data)
+                allBooks.append(contentsOf: otData.books)
+                print("Loaded \(otData.books.count) OT books into memory")
+            } catch {
+                print("Failed to decode OT scripture data: \(error)")
+            }
+        } else {
+            print("Failed to load OT scripture plist")
         }
         
-        let decoder = PropertyListDecoder()
-        do {
-            scriptureData = try decoder.decode(ScriptureData.self, from: data)
+        // Load New Testament
+        if let url = Bundle.main.url(forResource: "NewTestament", withExtension: "plist"),
+           let data = try? Data(contentsOf: url) {
+            do {
+                let ntData = try decoder.decode(ScriptureData.self, from: data)
+                allBooks.append(contentsOf: ntData.books)
+                print("Loaded \(ntData.books.count) NT books into memory")
+            } catch {
+                print("Failed to decode NT scripture data: \(error)")
+            }
+        } else {
+            print("Failed to load NT scripture plist")
+        }
+        
+        // Combine into single ScriptureData
+        if !allBooks.isEmpty {
+            scriptureData = ScriptureData(books: allBooks)
             isLoaded = true
-            print("Loaded \(scriptureData?.books.count ?? 0) books into memory")
             
             // Log memory usage for debugging
-            let totalVerses = scriptureData?.books.reduce(0) { total, book in
+            let totalVerses = allBooks.reduce(0) { total, book in
                 total + book.chapters.reduce(0) { chapterTotal, chapter in
                     chapterTotal + chapter.verses.count
                 }
-            } ?? 0
+            }
             print("Total verses loaded: \(totalVerses)")
-        } catch {
-            print("Failed to decode scripture data: \(error)")
         }
     }
     
