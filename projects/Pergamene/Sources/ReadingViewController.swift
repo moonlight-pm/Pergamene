@@ -22,28 +22,6 @@ class ReadingViewController: UIViewController {
         view.backgroundColor = .black // Black for overscroll areas
         scrollView.contentInsetAdjustmentBehavior = .never // Disable automatic inset adjustment
         
-        // Debug: Check if font file exists in bundle
-        if let fontURL = Bundle.main.url(forResource: "UnifrakturMaguntia-Regular", withExtension: "ttf") {
-            print("✅ UnifrakturMaguntia font file found at: \(fontURL)")
-        } else {
-            print("❌ UnifrakturMaguntia font file NOT found in bundle")
-        }
-        
-        // Debug: Print fonts containing specific keywords
-        print("=== SEARCHING FOR FONTS ===")
-        for family in UIFont.familyNames.sorted() {
-            if family.lowercased().contains("unifraktur") || 
-               family.lowercased().contains("maguntia") || 
-               family.lowercased().contains("gothic") ||
-               family.lowercased().contains("medieval") {
-                print("Found relevant font family: \(family)")
-                for font in UIFont.fontNames(forFamilyName: family) {
-                    print("  - \(font)")
-                }
-            }
-        }
-        print("=== END FONT SEARCH ===")
-        
         setupViews()
         setupGestures()
         setupNotifications()
@@ -111,13 +89,20 @@ class ReadingViewController: UIViewController {
         topFadeView.translatesAutoresizingMaskIntoConstraints = false
         topFadeView.isUserInteractionEnabled = false
         
-        // Configure gradient layer - fade from 70% black to transparent
+        // Configure gradient layer with ease-in curve - more color stops for smoother transition
         topFadeGradient.colors = [
-            UIColor.black.withAlphaComponent(0.7).cgColor,  // 70% black at top
-            UIColor.black.withAlphaComponent(0.3).cgColor,  // 30% in middle
-            UIColor.black.withAlphaComponent(0).cgColor     // Transparent at bottom
+            UIColor.black.withAlphaComponent(0.7).cgColor,   // 70% black at top
+            UIColor.black.withAlphaComponent(0.65).cgColor,  // Gradual fade starts
+            UIColor.black.withAlphaComponent(0.5).cgColor,   
+            UIColor.black.withAlphaComponent(0.35).cgColor,  
+            UIColor.black.withAlphaComponent(0.2).cgColor,   
+            UIColor.black.withAlphaComponent(0.1).cgColor,   
+            UIColor.black.withAlphaComponent(0.05).cgColor,  
+            UIColor.black.withAlphaComponent(0.02).cgColor,  
+            UIColor.black.withAlphaComponent(0).cgColor      // Transparent at bottom
         ]
-        topFadeGradient.locations = [0, 0.5, 1]
+        // Ease-in curve positioning - more gradual at the bottom
+        topFadeGradient.locations = [0, 0.2, 0.35, 0.5, 0.65, 0.75, 0.85, 0.95, 1]
         topFadeGradient.startPoint = CGPoint(x: 0.5, y: 0)
         topFadeGradient.endPoint = CGPoint(x: 0.5, y: 1)
         
@@ -295,17 +280,11 @@ class ReadingViewController: UIViewController {
         let dropCapLabel = UILabel()
         dropCapLabel.translatesAutoresizingMaskIntoConstraints = false
         dropCapLabel.text = firstChar
-        // Try different gothic/medieval fonts
-        let gothicFont = UIFont(name: "UnifrakturMaguntia-Regular", size: 56) ??
-                        UIFont(name: "Unifraktur Maguntia", size: 56) ??
-                        UIFont(name: "UnifrakturMaguntia", size: 56) ??
-                        UIFont(name: "MedievalSharp-Regular", size: 56) ??
-                        UIFont(name: "MedievalSharp", size: 56) ??
-                        UIFont(name: "Medieval Sharp", size: 56)
-        dropCapLabel.font = gothicFont ?? UIFont(name: "Cardo-Bold", size: 56) ?? .systemFont(ofSize: 56, weight: .bold)
-        
-        // Debug print to see which font is being used
-        print("Drop cap font: \(dropCapLabel.font.fontName)")
+        // Use UnifrakturMaguntia at 60 points
+        let gothicFont = UIFont(name: "UnifrakturMaguntia-Book", size: 60) ??
+                        UIFont(name: "UnifrakturMaguntia", size: 60) ??
+                        UIFont(name: "Unifraktur Maguntia", size: 60)
+        dropCapLabel.font = gothicFont ?? UIFont(name: "Cardo-Bold", size: 60) ?? .systemFont(ofSize: 60, weight: .bold)
         
         dropCapLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0) // Dark text
         dropCapLabel.textAlignment = .center
@@ -353,9 +332,9 @@ class ReadingViewController: UIViewController {
             dropCapContainer.widthAnchor.constraint(equalToConstant: 70),
             dropCapContainer.heightAnchor.constraint(equalToConstant: 70),
             
-            // Drop cap label centered in container
+            // Drop cap label centered horizontally, moved down 5 pixels
             dropCapLabel.centerXAnchor.constraint(equalTo: dropCapContainer.centerXAnchor),
-            dropCapLabel.centerYAnchor.constraint(equalTo: dropCapContainer.centerYAnchor),
+            dropCapLabel.centerYAnchor.constraint(equalTo: dropCapContainer.centerYAnchor, constant: 5),
             
             // Text view fills the container (with slight vertical offset)
             textView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
