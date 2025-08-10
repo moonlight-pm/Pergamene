@@ -4,6 +4,15 @@ A beautiful iOS Bible reading app with a focus on distraction-free reading and e
 
 ## Recent Updates
 
+### Horizontal Chapter Navigation System
+- **Three-Panel Architecture**: Previous, current, and next chapters pre-rendered for instant navigation
+- **Seamless Swiping**: Smooth horizontal scrolling between chapters with UIScrollView paging
+- **Memory Efficient**: Reuses three ChapterViewController instances, recycling as needed
+- **Book Boundaries**: Automatically transitions between books at chapter boundaries
+- **Elastic Resistance**: Natural bounce effect at the beginning of Genesis and end of Revelation
+- **Visual Polish**: Subtle vertical seams between panels hide background misalignment
+- **Scroll Position Preservation**: Each chapter maintains its exact vertical scroll position
+
 ### Settings Panel Overlay System
 - Settings panel is now a separate overlay that slides down over the reading content
 - Pull down from the top of any chapter to reveal settings (requires ~90 point pull)
@@ -18,8 +27,9 @@ A beautiful iOS Bible reading app with a focus on distraction-free reading and e
 - **Clean Architecture**: Settings no longer interfere with content scrolling
 
 ### Technical Improvements
+- Extracted single-chapter functionality into reusable ChapterViewController
+- ChapterContainerViewController manages horizontal navigation and view recycling
 - Refactored settings from unified scroll view to overlay architecture
-- Simplified scroll view logic (no more offset calculations)
 - Enhanced elastic pull mechanics with natural resistance curves
 - Better separation of concerns between reader and settings UI
 
@@ -49,7 +59,8 @@ A beautiful iOS Bible reading app with a focus on distraction-free reading and e
 
 ## Next Steps
 
-- Horizontal chapter navigation with pre-rendered adjacent chapters
 - Enhanced bookmarking and highlighting features
 - Additional typography options
+- Search functionality
+- Note-taking capabilities
 

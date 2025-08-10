@@ -10,7 +10,8 @@ class MainTabBarController: UITabBarController {
     }
     
     private func setupViewControllers() {
-        let readingVC = ReadingViewController()
+        // Use the new ChapterContainerViewController for horizontal chapter navigation
+        let readingVC = ChapterContainerViewController()
         readingVC.tabBarItem = UITabBarItem(title: "Read", image: UIImage(systemName: "book"), tag: 0)
         let readingNav = UINavigationController(rootViewController: readingVC)
         
