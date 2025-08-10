@@ -11,20 +11,37 @@ class ReadingViewController: UIViewController {
     private let chapterLabel = UILabel()
     private let versesStackView = UIStackView()
     
+    // Settings panel
+    private var settingsViewController: SettingsViewController?
+    private var settingsView: UIView?
+    private var settingsTopConstraint: NSLayoutConstraint?
+    private var isPullingSettings = false
+    private var settingsIsVisible = false
+    private let settingsPullThreshold: CGFloat = 100
+    private let settingsHeight: CGFloat = 400
+    
     private var currentBook: Book?
     private var currentChapter: Int = 1
     private var chapterTextCache: [String: String] = [:]
     private var chapterHeaderTopConstraint: NSLayoutConstraint?
     private var verseNumberLabels: [UILabel] = []
-    private var verseNumbersVisible = true // Default to visible
+    private var verseNumbersVisible: Bool {
+        return UserDefaults.standard.bool(forKey: "ShowVerseNumbers")
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        // Set default for verse numbers if not set
+        if UserDefaults.standard.object(forKey: "ShowVerseNumbers") == nil {
+            UserDefaults.standard.set(true, forKey: "ShowVerseNumbers")
+        }
         
         view.backgroundColor = .black // Black for overscroll areas
         scrollView.contentInsetAdjustmentBehavior = .never // Disable automatic inset adjustment
         
         setupViews()
+        setupSettingsPanel()
         setupGestures()
         setupNotifications()
         loadLastReadingPosition()
@@ -181,11 +198,53 @@ class ReadingViewController: UIViewController {
     }
     
     
+    private func setupSettingsPanel() {
+        // Create settings view controller
+        settingsViewController = SettingsViewController()
+        
+        guard let settingsVC = settingsViewController else { return }
+        
+        // Add as child view controller
+        addChild(settingsVC)
+        
+        // Setup settings view
+        settingsView = settingsVC.view
+        settingsView?.translatesAutoresizingMaskIntoConstraints = false
+        settingsView?.layer.shadowColor = UIColor.black.cgColor
+        settingsView?.layer.shadowOffset = CGSize(width: 0, height: 2)
+        settingsView?.layer.shadowRadius = 10
+        settingsView?.layer.shadowOpacity = 0.3
+        
+        // Add to view hierarchy (behind main content initially)
+        if let settingsView = settingsView {
+            view.insertSubview(settingsView, at: 0)
+            
+            // Setup constraints
+            settingsTopConstraint = settingsView.topAnchor.constraint(equalTo: view.topAnchor, constant: -settingsHeight)
+            
+            NSLayoutConstraint.activate([
+                settingsTopConstraint!,
+                settingsView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                settingsView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                settingsView.heightAnchor.constraint(equalToConstant: settingsHeight)
+            ])
+        }
+        
+        settingsVC.didMove(toParent: self)
+    }
+    
     private func setupNotifications() {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleChapterSelection(_:)),
             name: .chapterSelected,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleSettingsChanged),
+            name: .settingsChanged,
             object: nil
         )
     }
@@ -477,12 +536,6 @@ class ReadingViewController: UIViewController {
         let swipeRight = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipeRight))
         swipeRight.direction = .right
         view.addGestureRecognizer(swipeRight)
-        
-        // Add tap gesture for verse numbers
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
-        tapGesture.numberOfTapsRequired = 1
-        tapGesture.cancelsTouchesInView = false // Allow other gestures to work
-        scrollView.addGestureRecognizer(tapGesture)
     }
     
     @objc private func handleSwipeLeft() {
@@ -491,20 +544,6 @@ class ReadingViewController: UIViewController {
     
     @objc private func handleSwipeRight() {
         previousChapter()
-    }
-    
-    @objc private func handleTap() {
-        toggleVerseNumbers()
-    }
-    
-    private func toggleVerseNumbers() {
-        verseNumbersVisible.toggle()
-        
-        UIView.animate(withDuration: 0.3) {
-            self.verseNumberLabels.forEach { label in
-                label.alpha = self.verseNumbersVisible ? 1.0 : 0.0
-            }
-        }
     }
     
     private func positionVerseNumbers(in textView: UITextView, container: UIView, verses: [Verse]) {
@@ -588,6 +627,11 @@ class ReadingViewController: UIViewController {
         loadChapter()
     }
     
+    @objc private func handleSettingsChanged() {
+        // Reload the chapter to update verse numbers visibility
+        loadChapter()
+    }
+    
     // MARK: - Helpers
     
     
@@ -612,14 +656,101 @@ class ReadingViewController: UIViewController {
 
 extension ReadingViewController: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        // Save scroll position periodically
-        if let book = currentBook {
-            UserDataManager.shared.saveReadingPosition(
-                book: book.name,
-                chapter: currentChapter,
-                scrollPosition: scrollView.contentOffset.y
-            )
+        let yOffset = scrollView.contentOffset.y
+        
+        // Handle pull-down for settings
+        if yOffset < 0 && !settingsIsVisible {
+            // User is pulling down
+            let pullDistance = abs(yOffset)
+            
+            if pullDistance > 0 {
+                isPullingSettings = true
+                
+                // Calculate elastic effect
+                let elasticDistance = min(pullDistance, settingsPullThreshold)
+                let elasticRatio = elasticDistance / settingsPullThreshold
+                
+                // Move settings panel down with elastic effect
+                let settingsOffset = elasticDistance * 0.5 // Half speed for elastic feel
+                settingsTopConstraint?.constant = -settingsHeight + settingsOffset
+                
+                // Move main content down
+                scrollView.transform = CGAffineTransform(translationX: 0, y: settingsOffset)
+                
+                // Update alpha for fade effect
+                settingsView?.alpha = elasticRatio
+            }
+        } else if settingsIsVisible && yOffset > -settingsHeight {
+            // Handle closing settings when scrolling up
+            if yOffset > -settingsHeight / 2 {
+                hideSettings()
+            }
         }
+        
+        // Save scroll position periodically (only when not showing settings)
+        if !settingsIsVisible && yOffset >= 0 {
+            if let book = currentBook {
+                UserDataManager.shared.saveReadingPosition(
+                    book: book.name,
+                    chapter: currentChapter,
+                    scrollPosition: yOffset
+                )
+            }
+        }
+    }
+    
+    func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
+        let yOffset = scrollView.contentOffset.y
+        
+        if isPullingSettings && yOffset < 0 {
+            let pullDistance = abs(yOffset)
+            
+            if pullDistance >= settingsPullThreshold || velocity.y < -0.5 {
+                // Show settings
+                showSettings()
+                targetContentOffset.pointee = CGPoint(x: 0, y: -settingsHeight)
+            } else {
+                // Snap back
+                hideSettings()
+                targetContentOffset.pointee = CGPoint(x: 0, y: 0)
+            }
+            
+            isPullingSettings = false
+        }
+    }
+    
+    private func showSettings() {
+        guard !settingsIsVisible else { return }
+        
+        settingsIsVisible = true
+        
+        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0, options: .curveEaseInOut, animations: {
+            self.settingsTopConstraint?.constant = 0
+            self.scrollView.transform = CGAffineTransform(translationX: 0, y: self.settingsHeight)
+            self.settingsView?.alpha = 1.0
+            self.view.layoutIfNeeded()
+        })
+        
+        // Add inset to scroll view
+        scrollView.contentInset.top = settingsHeight
+        scrollView.scrollIndicatorInsets.top = settingsHeight
+    }
+    
+    private func hideSettings() {
+        guard settingsIsVisible else { return }
+        
+        settingsIsVisible = false
+        
+        UIView.animate(withDuration: 0.3, animations: {
+            self.settingsTopConstraint?.constant = -self.settingsHeight
+            self.scrollView.transform = .identity
+            self.settingsView?.alpha = 0
+            self.view.layoutIfNeeded()
+        })
+        
+        // Remove inset from scroll view
+        scrollView.contentInset.top = 0
+        scrollView.scrollIndicatorInsets.top = 0
     }
 }
 
