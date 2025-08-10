@@ -4,6 +4,7 @@ class ReadingViewController: UIViewController {
     
     private let scrollView = UIScrollView()
     private let contentView = UIView()
+    private let statusBarBackgroundView = UIView()
     private let chapterHeaderView = UIView()
     private let bookLabel = UILabel()
     private let chapterLabel = UILabel()
@@ -17,7 +18,7 @@ class ReadingViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        view.backgroundColor = UIColor.parchmentSolid // Solid color for main view
+        view.backgroundColor = .black // Black for overscroll areas
         scrollView.contentInsetAdjustmentBehavior = .never // Disable automatic inset adjustment
         
         // Debug: Print available fonts
@@ -56,8 +57,13 @@ class ReadingViewController: UIViewController {
         contentView.translatesAutoresizingMaskIntoConstraints = false
         contentView.backgroundColor = UIColor.parchmentTexture // Texture on content view
         
+        // Status bar background to prevent text showing behind status bar
+        statusBarBackgroundView.translatesAutoresizingMaskIntoConstraints = false
+        statusBarBackgroundView.backgroundColor = UIColor.parchmentSolid
+        
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
+        view.addSubview(statusBarBackgroundView) // Add on top of scroll view
         
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.topAnchor), // Extend into safe area
@@ -69,7 +75,13 @@ class ReadingViewController: UIViewController {
             contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
             contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
             contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor)
+            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
+            
+            // Status bar background
+            statusBarBackgroundView.topAnchor.constraint(equalTo: view.topAnchor),
+            statusBarBackgroundView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            statusBarBackgroundView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            statusBarBackgroundView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor)
         ])
     }
     
@@ -236,7 +248,7 @@ class ReadingViewController: UIViewController {
         let dropCapLabel = UILabel()
         dropCapLabel.translatesAutoresizingMaskIntoConstraints = false
         dropCapLabel.text = firstChar
-        dropCapLabel.font = UIFont(name: "Cardo-Bold", size: 56) ?? .systemFont(ofSize: 56, weight: .bold)
+        dropCapLabel.font = UIFont(name: "UnifrakturMaguntia-Regular", size: 56) ?? UIFont(name: "Cardo-Bold", size: 56) ?? .systemFont(ofSize: 56, weight: .bold)
         dropCapLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0) // Dark text
         dropCapLabel.textAlignment = .center
         
