@@ -178,7 +178,7 @@ class BookSelectionViewController: UIViewController {
     
     @objc private func bookButtonTouchDown(_ sender: UIButton) {
         UIView.animate(withDuration: 0.1) {
-            sender.backgroundColor = UIColor(white: 1.0, alpha: 0.3) // Semi-transparent white
+            sender.backgroundColor = UIColor(red: 0.3, green: 0.22, blue: 0.15, alpha: 0.2) // Semi-transparent dark brown
         }
     }
     

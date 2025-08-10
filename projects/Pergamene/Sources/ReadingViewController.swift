@@ -16,7 +16,7 @@ class ReadingViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        view.backgroundColor = UIColor.parchmentTexture
+        view.backgroundColor = UIColor.parchmentSolid // Solid color for main view
         
         // Debug: Print available fonts
         for family in UIFont.familyNames.sorted() {
@@ -46,6 +46,7 @@ class ReadingViewController: UIViewController {
         scrollView.delegate = self
         
         contentView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.backgroundColor = UIColor.parchmentTexture // Texture on content view
         
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
@@ -215,18 +216,18 @@ class ReadingViewController: UIViewController {
         // Get the first character (but don't remove it from the text yet)
         let firstChar = String(text.prefix(1)).uppercased()
         
-        // Create simple boxed drop cap placeholder
+        // Create simple boxed drop cap placeholder with inverted colors
         let dropCapContainer = UIView()
         dropCapContainer.translatesAutoresizingMaskIntoConstraints = false
-        dropCapContainer.backgroundColor = UIColor.parchmentSolid
-        dropCapContainer.layer.borderColor = UIColor(red: 0.5, green: 0.35, blue: 0.2, alpha: 1.0).cgColor
+        dropCapContainer.backgroundColor = UIColor(red: 0.25, green: 0.18, blue: 0.12, alpha: 1.0) // Dark brown background
+        dropCapContainer.layer.borderColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0).cgColor
         dropCapContainer.layer.borderWidth = 2
         
         let dropCapLabel = UILabel()
         dropCapLabel.translatesAutoresizingMaskIntoConstraints = false
         dropCapLabel.text = firstChar
         dropCapLabel.font = UIFont(name: "Cardo-Bold", size: 56) ?? .systemFont(ofSize: 56, weight: .bold)
-        dropCapLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0) // Much darker
+        dropCapLabel.textColor = UIColor(red: 0.95, green: 0.93, blue: 0.88, alpha: 1.0) // Light text on dark background
         dropCapLabel.textAlignment = .center
         
         dropCapContainer.addSubview(dropCapLabel)
