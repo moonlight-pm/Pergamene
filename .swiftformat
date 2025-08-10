@@ -1,0 +1,32 @@
+# SwiftFormat configuration
+# Pergamene iOS App
+
+# Indentation
+--indent 4
+--indentcase false
+--indentstrings false
+
+# Spacing
+--trimwhitespace always
+--nospaceoperators ..<,...<
+--ranges no-space
+
+# Line breaks
+--linebreaks lf
+--maxwidth 120
+
+# Syntax
+--voidtype tuple
+--commas inline
+--semicolons never
+--stripunusedargs closure-only
+
+# Organization
+--organizetypes class,struct,enum,extension
+--extensionacl on-declarations
+
+# Rules to disable
+--disable redundantSelf,trailingCommas,blankLinesAtStartOfScope
+
+# Header
+--header strip
