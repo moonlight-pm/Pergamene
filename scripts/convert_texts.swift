@@ -30,6 +30,68 @@ struct ScriptureData: Codable {
 
 class USFMParser {
     
+    // Clean USFM text by removing footnotes and formatting markers
+    private func cleanUSFMText(_ text: String) -> String {
+        var cleaned = text
+        
+        // Remove footnote markers and their content
+        // Pattern: \f + ... \f* (footnotes with all content between)
+        let footnotePattern = #"\\f\s*\+.*?\\f\*"#
+        cleaned = cleaned.replacingOccurrences(
+            of: footnotePattern,
+            with: "",
+            options: .regularExpression
+        )
+        
+        // Remove cross-reference markers
+        // Pattern: \x ... \x*
+        let crossRefPattern = #"\\x\s*\+.*?\\x\*"#
+        cleaned = cleaned.replacingOccurrences(
+            of: crossRefPattern,
+            with: "",
+            options: .regularExpression
+        )
+        
+        // Remove character style markers (like \sc...\sc*, \it...\it*, etc.)
+        let characterStylePattern = #"\\[a-z]+\s+([^\\]*)\\[a-z]+\*"#
+        cleaned = cleaned.replacingOccurrences(
+            of: characterStylePattern,
+            with: "$1",
+            options: .regularExpression
+        )
+        
+        // Remove standalone inline markers
+        let inlineMarkerPattern = #"\\[a-z]+\*?"#
+        cleaned = cleaned.replacingOccurrences(
+            of: inlineMarkerPattern,
+            with: "",
+            options: .regularExpression
+        )
+        
+        // Remove footnote references that might remain (like f + fr 1:4 fqa ... f*)
+        let footnoteRefPattern = #"f\s*\+[^f]*f\*"#
+        cleaned = cleaned.replacingOccurrences(
+            of: footnoteRefPattern,
+            with: "",
+            options: .regularExpression
+        )
+        
+        // Remove any remaining backslashes
+        cleaned = cleaned.replacingOccurrences(of: "\\", with: "")
+        
+        // Clean up any double spaces
+        cleaned = cleaned.replacingOccurrences(
+            of: #"\s+"#,
+            with: " ",
+            options: .regularExpression
+        )
+        
+        // Trim whitespace
+        cleaned = cleaned.trimmingCharacters(in: .whitespaces)
+        
+        return cleaned
+    }
+    
     func parseDirectory(at path: String) -> [Book] {
         var books: [Book] = []
         let fileManager = FileManager.default
@@ -104,11 +166,10 @@ class USFMParser {
                 
                 if parts.count >= 2,
                    let verseNum = Int(parts[0]) {
-                    let verseText = String(parts[1])
-                        .replacingOccurrences(of: "\\", with: "")
-                        .trimmingCharacters(in: .whitespaces)
+                    let rawText = String(parts[1])
+                    let cleanedText = cleanUSFMText(rawText)
                     
-                    currentVerses.append(Verse(number: verseNum, text: verseText))
+                    currentVerses.append(Verse(number: verseNum, text: cleanedText))
                 }
             }
         }
@@ -150,7 +211,7 @@ let arguments = CommandLine.arguments
 let projectRoot = arguments.count > 1 ? arguments[1] : FileManager.default.currentDirectoryPath
 
 let downloadDir = "\(projectRoot)/downloads"
-let outputDir = "\(projectRoot)/Projects/Pergamene/Resources/Texts"
+let outputDir = "\(projectRoot)/projects/Pergamene/Resources/Texts"
 
 // Create output directory
 try? FileManager.default.createDirectory(atPath: outputDir, withIntermediateDirectories: true)
