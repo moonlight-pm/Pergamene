@@ -661,7 +661,9 @@ extension ChapterViewController {
             container.layoutIfNeeded()
             
             DispatchQueue.main.async { [weak self] in
-                textView.layoutManager.ensureLayout(for: textView.textContainer)
+                // Force layout without accessing layoutManager
+                textView.setNeedsLayout()
+                textView.layoutIfNeeded()
                 self?.positionVerseNumbers(in: textView, container: container, verses: verses)
                 
                 if let visible = self?.verseNumbersVisible {
@@ -761,11 +763,6 @@ extension ChapterViewController {
     }
     
     private func positionVerseNumbers(in textView: UITextView, container: UIView, verses: [Verse]) {
-        let layoutManager = textView.layoutManager
-        let textContainer = textView.textContainer
-        
-        layoutManager.ensureLayout(for: textContainer)
-        
         verseNumberLabels.forEach { $0.removeFromSuperview() }
         verseNumberLabels.removeAll()
         
@@ -792,8 +789,14 @@ extension ChapterViewController {
                 searchLocation += 1
             }
             
-            let glyphRange = layoutManager.glyphRange(forCharacterRange: NSRange(location: searchLocation, length: 1), actualCharacterRange: nil)
-            let rect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+            // Use TextKit 2 approach - get the frame directly from textView
+            guard searchLocation < textString.length else { continue }
+            
+            // Get the rect for the character position without accessing layoutManager
+            guard let position = textView.position(from: textView.beginningOfDocument, offset: searchLocation),
+                  let range = textView.textRange(from: position, to: position) else { continue }
+            
+            let rect = textView.firstRect(for: range)
             
             verseLabel.sizeToFit()
             
