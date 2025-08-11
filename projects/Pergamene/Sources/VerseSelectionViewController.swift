@@ -113,15 +113,15 @@ class VerseSelectionViewController: UIViewController {
     private func setupPreview() {
         previewTextView.translatesAutoresizingMaskIntoConstraints = false
         previewTextView.isEditable = false
-        previewTextView.isScrollEnabled = true
-        // Inverse style with 90% opacity
-        previewTextView.backgroundColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 0.9)
+        previewTextView.isScrollEnabled = false  // Disable scrolling to allow dynamic height
+        // Light style with border
+        previewTextView.backgroundColor = .clear
         previewTextView.layer.cornerRadius = 8
         previewTextView.layer.borderWidth = 1
-        previewTextView.layer.borderColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 0.5).cgColor
+        previewTextView.layer.borderColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 0.3).cgColor
         previewTextView.contentInset = UIEdgeInsets(top: 15, left: 15, bottom: 15, right: 15)
-        previewTextView.font = UIFont(name: "Cardo-Regular", size: 15) ?? .systemFont(ofSize: 15)
-        previewTextView.textColor = UIColor(red: 0.98, green: 0.96, blue: 0.92, alpha: 1.0)
+        previewTextView.font = UIFont(name: "Cardo-Regular", size: 16) ?? .systemFont(ofSize: 16)
+        previewTextView.textColor = UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0)
         
         contentView.addSubview(previewTextView)
     }
@@ -160,7 +160,7 @@ class VerseSelectionViewController: UIViewController {
             titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
             // From verse label and picker (stacked layout)
-            fromVerseLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 30),
+            fromVerseLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 50),
             fromVerseLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             fromVerseLabel.widthAnchor.constraint(equalToConstant: 60),
             
@@ -179,11 +179,12 @@ class VerseSelectionViewController: UIViewController {
             toVersePicker.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             toVersePicker.heightAnchor.constraint(equalToConstant: 100),
             
-            // Preview text
+            // Preview text - dynamic height with max constraint
             previewTextView.topAnchor.constraint(equalTo: toVersePicker.bottomAnchor, constant: 30),
             previewTextView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             previewTextView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            previewTextView.heightAnchor.constraint(equalToConstant: 150),
+            previewTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 80),
+            previewTextView.heightAnchor.constraint(lessThanOrEqualToConstant: 250),
             
             // Share button
             shareButton.topAnchor.constraint(equalTo: previewTextView.bottomAnchor, constant: 20),
@@ -224,7 +225,16 @@ class VerseSelectionViewController: UIViewController {
             }
         }
         
-        previewTextView.text = previewText.trimmingCharacters(in: .whitespaces)
+        let trimmedText = previewText.trimmingCharacters(in: .whitespaces)
+        
+        // Check if text is too long and would push share button off screen
+        let maxLength = 500  // Approximate character limit
+        if trimmedText.count > maxLength {
+            let truncated = String(trimmedText.prefix(maxLength))
+            previewTextView.text = truncated + "..."
+        } else {
+            previewTextView.text = trimmedText
+        }
         
         // Update stored selection
         startVerse = actualFromIndex + 1
@@ -294,11 +304,25 @@ extension VerseSelectionViewController: UIPickerViewDataSource {
 // MARK: - UIPickerViewDelegate
 
 extension VerseSelectionViewController: UIPickerViewDelegate {
-    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
-        guard row < verses.count else { return nil }
-        let verse = verses[row]
-        let truncatedText = String(verse.text.prefix(50))
-        return "\(row + 1). \(truncatedText)..."
+    func pickerView(_ pickerView: UIPickerView, viewForRow row: Int, forComponent component: Int, reusing view: UIView?) -> UIView {
+        let label = (view as? UILabel) ?? UILabel()
+        label.font = UIFont(name: "Cardo-Regular", size: 16) ?? .systemFont(ofSize: 16)
+        label.textColor = UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0)
+        label.textAlignment = .left
+        label.numberOfLines = 2
+        label.lineBreakMode = .byTruncatingTail
+        
+        if row < verses.count {
+            let verse = verses[row]
+            let truncatedText = String(verse.text.prefix(80))
+            label.text = "\(row + 1). \(truncatedText)..."
+        }
+        
+        return label
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, rowHeightForComponent component: Int) -> CGFloat {
+        return 44  // Slightly taller rows for better readability
     }
     
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
