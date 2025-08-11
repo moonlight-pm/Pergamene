@@ -26,6 +26,17 @@ let project = Project(
             deploymentTargets: .iOS("15.0"),
             infoPlist: .extendingDefault(
                 with: [
+                    "UIApplicationSceneManifest": [
+                        "UIApplicationSupportsMultipleScenes": false,
+                        "UISceneConfigurations": [
+                            "UIWindowSceneSessionRoleApplication": [
+                                [
+                                    "UISceneConfigurationName": "Default Configuration",
+                                    "UISceneDelegateClassName": "$(PRODUCT_MODULE_NAME).SceneDelegate"
+                                ]
+                            ]
+                        ]
+                    ],
                     "UILaunchScreen": [
                         "UIColorName": "",
                         "UIImageName": "",
