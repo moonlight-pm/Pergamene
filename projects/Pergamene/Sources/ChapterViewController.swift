@@ -21,6 +21,7 @@ class ChapterViewController: UIViewController {
     private let floatingIndicatorView = UIView()
     private let floatingIndicatorLabel = UILabel()
     private var floatingIndicatorVisible = false
+    private var floatingIndicatorHeightConstraint: NSLayoutConstraint?
     
     // Settings overlay system
     private let settingsOverlayView = UIView()
@@ -75,6 +76,10 @@ class ChapterViewController: UIViewController {
         super.viewSafeAreaInsetsDidChange()
         chapterHeaderTopConstraint?.constant = view.safeAreaInsets.top + 20
         updateGradientMask()
+        
+        // Update floating indicator height to cover safe area + label
+        let labelHeight: CGFloat = 28
+        floatingIndicatorHeightConstraint?.constant = view.safeAreaInsets.top + labelHeight
     }
     
     override func viewDidLayoutSubviews() {
@@ -127,7 +132,7 @@ class ChapterViewController: UIViewController {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.backgroundColor = .clear
         scrollView.delegate = self
-        scrollView.showsVerticalScrollIndicator = true
+        scrollView.showsVerticalScrollIndicator = false  // Hide scroll bar for cleaner look
         scrollView.isDirectionalLockEnabled = true // Lock to vertical scrolling only
         
         contentView.translatesAutoresizingMaskIntoConstraints = false
@@ -212,7 +217,8 @@ class ChapterViewController: UIViewController {
     
     private func setupFloatingIndicator() {
         floatingIndicatorView.translatesAutoresizingMaskIntoConstraints = false
-        floatingIndicatorView.backgroundColor = UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 0.85)
+        // Changed: Use 70% opacity (30% transparent) and extend to top of view
+        floatingIndicatorView.backgroundColor = UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 0.7)
         floatingIndicatorView.alpha = 0
         
         floatingIndicatorLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -223,15 +229,21 @@ class ChapterViewController: UIViewController {
         floatingIndicatorView.addSubview(floatingIndicatorLabel)
         view.addSubview(floatingIndicatorView)
         
+        // Initial height - will be updated in viewSafeAreaInsetsDidChange
+        floatingIndicatorHeightConstraint = floatingIndicatorView.heightAnchor.constraint(equalToConstant: 72)
+        
         NSLayoutConstraint.activate([
-            floatingIndicatorView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            // Changed: Extend to top of view (not safe area) to cover status bar
+            floatingIndicatorView.topAnchor.constraint(equalTo: view.topAnchor),
             floatingIndicatorView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             floatingIndicatorView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            floatingIndicatorView.heightAnchor.constraint(equalToConstant: 28),
+            floatingIndicatorHeightConstraint!,
             
-            floatingIndicatorLabel.centerYAnchor.constraint(equalTo: floatingIndicatorView.centerYAnchor),
+            // Position label just below safe area
+            floatingIndicatorLabel.bottomAnchor.constraint(equalTo: floatingIndicatorView.bottomAnchor, constant: -4),
             floatingIndicatorLabel.leadingAnchor.constraint(equalTo: floatingIndicatorView.leadingAnchor, constant: 20),
-            floatingIndicatorLabel.trailingAnchor.constraint(equalTo: floatingIndicatorView.trailingAnchor, constant: -20)
+            floatingIndicatorLabel.trailingAnchor.constraint(equalTo: floatingIndicatorView.trailingAnchor, constant: -20),
+            floatingIndicatorLabel.heightAnchor.constraint(equalToConstant: 20)
         ])
         
         floatingIndicatorView.layer.zPosition = 10
