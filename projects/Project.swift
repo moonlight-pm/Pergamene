@@ -37,12 +37,7 @@ let project = Project(
                             ]
                         ]
                     ],
-                    "UILaunchScreen": [
-                        "UIColorName": "",
-                        "UIImageName": "splash",
-                        "UIImageRespectsSafeAreaInsets": true,
-                        "UILaunchScreenFillMode": "aspectFill"
-                    ],
+                    "UILaunchStoryboardName": "LaunchScreen",
                     "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"],
                     "UIRequiresFullScreen": true,
                     "CFBundleDisplayName": "Pergamene",
