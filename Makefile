@@ -87,10 +87,10 @@ test: generate
 # Build and run on simulator
 run: generate
 	@echo "📱 Running on simulator..."
-	@cd projects && xcodebuild -workspace Pergamene.xcworkspace -scheme Pergamene -destination 'platform=iOS Simulator,OS=17.5,name=iPhone 15' -derivedDataPath build
-	@xcrun simctl boot "iPhone 15" 2>/dev/null || true
-	@xcrun simctl install "iPhone 15" projects/build/Build/Products/Debug-iphonesimulator/Pergamene.app
-	@xcrun simctl launch "iPhone 15" pm.moonlight.Pergamene
+	@cd projects && xcodebuild -workspace Pergamene.xcworkspace -scheme Pergamene -destination 'platform=iOS Simulator,OS=18.6,name=iPhone 16 Pro Max' -derivedDataPath build
+	@xcrun simctl boot "iPhone 16 Pro Max" 2>/dev/null || true
+	@xcrun simctl install "iPhone 16 Pro Max" projects/build/Build/Products/Debug-iphonesimulator/Pergamene.app
+	@xcrun simctl launch "iPhone 16 Pro Max" pm.moonlight.Pergamene
 
 # Open in Xcode
 open: generate
