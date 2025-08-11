@@ -61,12 +61,11 @@ final class ScriptureManager {
             do {
                 let otData = try decoder.decode(ScriptureData.self, from: data)
                 allBooks.append(contentsOf: otData.books)
-                print("Loaded \(otData.books.count) Old Testament books")
             } catch {
-                print("Failed to decode Old Testament scripture data: \(error)")
+                // Failed to decode Old Testament scripture data
             }
         } else {
-            print("Failed to load Old Testament scripture plist")
+            // Failed to load Old Testament scripture plist
         }
         
         // Load New Testament
@@ -75,12 +74,11 @@ final class ScriptureManager {
             do {
                 let ntData = try decoder.decode(ScriptureData.self, from: data)
                 allBooks.append(contentsOf: ntData.books)
-                print("Loaded \(ntData.books.count) New Testament books")
             } catch {
-                print("Failed to decode New Testament scripture data: \(error)")
+                // Failed to decode New Testament scripture data
             }
         } else {
-            print("Failed to load New Testament scripture plist")
+            // Failed to load New Testament scripture plist
         }
         
         // Combine into single ScriptureData
@@ -88,13 +86,6 @@ final class ScriptureManager {
             scriptureData = ScriptureData(books: allBooks)
             isLoaded = true
             
-            // Log total verses for memory usage tracking
-            let totalVerses = allBooks.reduce(0) { total, book in
-                total + book.chapters.reduce(0) { chapterTotal, chapter in
-                    chapterTotal + chapter.verses.count
-                }
-            }
-            print("Scripture data loaded: \(allBooks.count) books, \(totalVerses) verses")
         }
     }
     
