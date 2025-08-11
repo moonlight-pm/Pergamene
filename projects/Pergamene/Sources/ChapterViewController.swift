@@ -599,8 +599,10 @@ class ChapterViewController: UIViewController {
         
         selectionVC.modalPresentationStyle = .pageSheet
         if let sheet = selectionVC.sheetPresentationController {
-            sheet.detents = [.medium()]
+            sheet.detents = [.large()]
             sheet.prefersGrabberVisible = true
+            sheet.prefersScrollingExpandsWhenScrolledToEdge = false
+            sheet.preferredCornerRadius = 20
         }
         
         present(selectionVC, animated: true)

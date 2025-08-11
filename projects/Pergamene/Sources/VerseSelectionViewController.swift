@@ -74,14 +74,14 @@ class VerseSelectionViewController: UIViewController {
     private func setupVerseSelectors() {
         // From verse label
         fromVerseLabel.translatesAutoresizingMaskIntoConstraints = false
-        fromVerseLabel.text = "From Verse:"
-        fromVerseLabel.font = UIFont(name: "Cardo-Regular", size: 16) ?? .systemFont(ofSize: 16)
+        fromVerseLabel.text = "From:"
+        fromVerseLabel.font = UIFont(name: "Cardo-Bold", size: 16) ?? .systemFont(ofSize: 16, weight: .semibold)
         fromVerseLabel.textColor = UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0)
         
         // To verse label
         toVerseLabel.translatesAutoresizingMaskIntoConstraints = false
-        toVerseLabel.text = "To Verse:"
-        toVerseLabel.font = UIFont(name: "Cardo-Regular", size: 16) ?? .systemFont(ofSize: 16)
+        toVerseLabel.text = "To:"
+        toVerseLabel.font = UIFont(name: "Cardo-Bold", size: 16) ?? .systemFont(ofSize: 16, weight: .semibold)
         toVerseLabel.textColor = UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0)
         
         // From verse picker
@@ -114,13 +114,14 @@ class VerseSelectionViewController: UIViewController {
         previewTextView.translatesAutoresizingMaskIntoConstraints = false
         previewTextView.isEditable = false
         previewTextView.isScrollEnabled = true
-        previewTextView.backgroundColor = UIColor(red: 0.98, green: 0.96, blue: 0.92, alpha: 1.0)
+        // Inverse style with 90% opacity
+        previewTextView.backgroundColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 0.9)
         previewTextView.layer.cornerRadius = 8
         previewTextView.layer.borderWidth = 1
-        previewTextView.layer.borderColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 0.3).cgColor
-        previewTextView.contentInset = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
-        previewTextView.font = UIFont(name: "Cardo-Regular", size: 14) ?? .systemFont(ofSize: 14)
-        previewTextView.textColor = UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0)
+        previewTextView.layer.borderColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 0.5).cgColor
+        previewTextView.contentInset = UIEdgeInsets(top: 15, left: 15, bottom: 15, right: 15)
+        previewTextView.font = UIFont(name: "Cardo-Regular", size: 15) ?? .systemFont(ofSize: 15)
+        previewTextView.textColor = UIColor(red: 0.98, green: 0.96, blue: 0.92, alpha: 1.0)
         
         contentView.addSubview(previewTextView)
     }
@@ -158,31 +159,31 @@ class VerseSelectionViewController: UIViewController {
             titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
-            // From verse label and picker
+            // From verse label and picker (stacked layout)
             fromVerseLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 30),
             fromVerseLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            fromVerseLabel.widthAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 0.5, constant: -30),
+            fromVerseLabel.widthAnchor.constraint(equalToConstant: 60),
             
-            fromVersePicker.topAnchor.constraint(equalTo: fromVerseLabel.bottomAnchor, constant: 10),
-            fromVersePicker.leadingAnchor.constraint(equalTo: fromVerseLabel.leadingAnchor),
-            fromVersePicker.trailingAnchor.constraint(equalTo: fromVerseLabel.trailingAnchor),
+            fromVersePicker.centerYAnchor.constraint(equalTo: fromVerseLabel.centerYAnchor),
+            fromVersePicker.leadingAnchor.constraint(equalTo: fromVerseLabel.trailingAnchor, constant: 10),
+            fromVersePicker.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             fromVersePicker.heightAnchor.constraint(equalToConstant: 100),
             
-            // To verse label and picker
-            toVerseLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 30),
-            toVerseLabel.leadingAnchor.constraint(equalTo: contentView.centerXAnchor, constant: 10),
-            toVerseLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            // To verse label and picker (stacked layout)
+            toVerseLabel.topAnchor.constraint(equalTo: fromVersePicker.bottomAnchor, constant: 20),
+            toVerseLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            toVerseLabel.widthAnchor.constraint(equalToConstant: 60),
             
-            toVersePicker.topAnchor.constraint(equalTo: toVerseLabel.bottomAnchor, constant: 10),
-            toVersePicker.leadingAnchor.constraint(equalTo: toVerseLabel.leadingAnchor),
-            toVersePicker.trailingAnchor.constraint(equalTo: toVerseLabel.trailingAnchor),
+            toVersePicker.centerYAnchor.constraint(equalTo: toVerseLabel.centerYAnchor),
+            toVersePicker.leadingAnchor.constraint(equalTo: toVerseLabel.trailingAnchor, constant: 10),
+            toVersePicker.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             toVersePicker.heightAnchor.constraint(equalToConstant: 100),
             
             // Preview text
-            previewTextView.topAnchor.constraint(equalTo: fromVersePicker.bottomAnchor, constant: 20),
+            previewTextView.topAnchor.constraint(equalTo: toVersePicker.bottomAnchor, constant: 30),
             previewTextView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             previewTextView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            previewTextView.heightAnchor.constraint(equalToConstant: 120),
+            previewTextView.heightAnchor.constraint(equalToConstant: 150),
             
             // Share button
             shareButton.topAnchor.constraint(equalTo: previewTextView.bottomAnchor, constant: 20),
@@ -296,8 +297,8 @@ extension VerseSelectionViewController: UIPickerViewDelegate {
     func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
         guard row < verses.count else { return nil }
         let verse = verses[row]
-        let truncatedText = String(verse.text.prefix(30))
-        return "Verse \(row + 1): \(truncatedText)..."
+        let truncatedText = String(verse.text.prefix(50))
+        return "\(row + 1). \(truncatedText)..."
     }
     
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
