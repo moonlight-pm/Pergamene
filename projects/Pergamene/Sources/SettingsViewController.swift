@@ -238,8 +238,8 @@ class InstructionsViewController: UIViewController {
         • Swipe left/right to navigate between chapters
         • Tap the book name to select a different book
         
-        Sharing (Coming Soon)
-        • Long press on text to share verses
+        Sharing
+        • Long press on any verse to select and share
         
         Tips
         • Your reading position is saved automatically
