@@ -17,6 +17,11 @@ class ChapterViewController: UIViewController {
     private let chapterLabel = UILabel()
     private let versesStackView = UIStackView()
     
+    // Verse selection properties
+    private var currentChapterVerses: [Verse] = []
+    private var selectedVerseStart: Int = 1
+    private var selectedVerseEnd: Int = 1
+    
     // Floating chapter indicator
     private let floatingIndicatorView = UIView()
     private let floatingIndicatorLabel = UILabel()
@@ -394,6 +399,10 @@ class ChapterViewController: UIViewController {
     }
     
     private func restoreScrollPosition(book: Book, chapter: Int) {
+        // Update timestamp to mark this chapter as currently being viewed
+        UserDataManager.shared.updateChapterViewTimestamp(book: book.name, chapter: chapter)
+        
+        // Get saved position (will be 0 if > 24 hours old)
         let savedPosition = UserDataManager.shared.getChapterScrollPosition(book: book.name, chapter: chapter)
         if savedPosition > 0 {
             scrollView.setContentOffset(CGPoint(x: 0, y: savedPosition), animated: false)
@@ -553,6 +562,49 @@ class ChapterViewController: UIViewController {
         }
         present(bookVC, animated: true)
     }
+    
+    // MARK: - Verse Selection Handlers
+    
+    @objc private func handleVerseLongPress(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began else { return }
+        
+        // Try to detect which verse was pressed (simplified - just use verse 1 for now)
+        // In a full implementation, we'd calculate based on the touch location
+        let touchPoint = gesture.location(in: gesture.view)
+        let detectedVerse = detectVerseAtPoint(touchPoint, in: gesture.view as? UITextView)
+        
+        // Set initial selection to the detected verse
+        selectedVerseStart = detectedVerse
+        selectedVerseEnd = detectedVerse
+        
+        // Present the selection sheet
+        presentVerseSelectionSheet()
+    }
+    
+    private func detectVerseAtPoint(_ point: CGPoint, in textView: UITextView?) -> Int {
+        // Simplified implementation - in reality we'd calculate based on text layout
+        // For now, just return verse 1 or a middle verse
+        guard let verses = currentChapterVerses.first else { return 1 }
+        return verses.number
+    }
+    
+    private func presentVerseSelectionSheet() {
+        let selectionVC = VerseSelectionViewController()
+        selectionVC.currentBook = currentBook
+        selectionVC.currentChapter = currentChapter
+        selectionVC.verses = currentChapterVerses
+        selectionVC.startVerse = selectedVerseStart
+        selectionVC.endVerse = selectedVerseEnd
+        selectionVC.delegate = self
+        
+        selectionVC.modalPresentationStyle = .pageSheet
+        if let sheet = selectionVC.sheetPresentationController {
+            sheet.detents = [.medium()]
+            sheet.prefersGrabberVisible = true
+        }
+        
+        present(selectionVC, animated: true)
+    }
 }
 
 // MARK: - Chapter Content Creation
@@ -571,6 +623,14 @@ extension ChapterViewController {
         
         container.addSubview(textView)
         container.addSubview(dropCapContainer) // Add drop cap on top
+        
+        // Add long press gesture recognizer to text view for sharing
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleVerseLongPress(_:)))
+        longPress.minimumPressDuration = 0.5
+        textView.addGestureRecognizer(longPress)
+        
+        // Store current chapter verses for sharing
+        currentChapterVerses = verses
         
         NSLayoutConstraint.activate([
             // Drop cap container
@@ -799,6 +859,14 @@ extension ChapterViewController: UIScrollViewDelegate {
                 scrollPosition: yOffset
             )
         }
+    }
+}
+
+// MARK: - VerseSelectionViewControllerDelegate
+
+extension ChapterViewController: VerseSelectionViewControllerDelegate {
+    func verseSelectionViewController(_ controller: VerseSelectionViewController, didSelectVerses verses: [(Int, String)], book: Book, chapter: Int) {
+        // Verse sharing completed - could add additional handling here if needed
     }
 }
 

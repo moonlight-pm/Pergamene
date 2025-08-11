@@ -207,30 +207,55 @@ final class UserDataManager {
         saveChapterScrollPosition(book: book, chapter: chapter, scrollPosition: scrollPosition)
     }
     
-    // MARK: - Per-Chapter Scroll Positions
+    // MARK: - Per-Chapter Scroll Positions with Timestamps
+    
+    private struct ChapterScrollData: Codable {
+        let scrollPosition: Double
+        let lastViewedDate: Date
+    }
     
     private func chapterScrollKey(book: String, chapter: Int) -> String {
         return "pergamene.scroll.\(book).\(chapter)"
     }
     
-    /// Save the scroll position for a specific chapter
+    /// Save the scroll position for a specific chapter with timestamp
     /// - Parameters:
     ///   - book: The book name
     ///   - chapter: The chapter number
     ///   - scrollPosition: The scroll position within the chapter
     func saveChapterScrollPosition(book: String, chapter: Int, scrollPosition: Double) {
         let key = chapterScrollKey(book: book, chapter: chapter)
-        UserDefaults.standard.set(scrollPosition, forKey: key)
+        let data = ChapterScrollData(scrollPosition: scrollPosition, lastViewedDate: Date())
+        
+        if let encoded = try? JSONEncoder().encode(data) {
+            UserDefaults.standard.set(encoded, forKey: key)
+        }
     }
     
     /// Get the saved scroll position for a specific chapter
+    /// Automatically resets to 0 if last viewed > 24 hours ago
     /// - Parameters:
     ///   - book: The book name
     ///   - chapter: The chapter number
-    /// - Returns: The saved scroll position, or 0 if none exists
+    /// - Returns: The saved scroll position, or 0 if none exists or if stale
     func getChapterScrollPosition(book: String, chapter: Int) -> Double {
         let key = chapterScrollKey(book: book, chapter: chapter)
-        return UserDefaults.standard.double(forKey: key)
+        
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let scrollData = try? JSONDecoder().decode(ChapterScrollData.self, from: data) else {
+            return 0
+        }
+        
+        // Check if 24 hours have passed since last viewed
+        let hoursSinceLastView = Date().timeIntervalSince(scrollData.lastViewedDate) / 3600
+        
+        if hoursSinceLastView > 24 {
+            // Reset position if more than 24 hours old
+            clearChapterScrollPosition(book: book, chapter: chapter)
+            return 0
+        }
+        
+        return scrollData.scrollPosition
     }
     
     /// Clear the saved scroll position for a specific chapter
@@ -240,5 +265,24 @@ final class UserDataManager {
     func clearChapterScrollPosition(book: String, chapter: Int) {
         let key = chapterScrollKey(book: book, chapter: chapter)
         UserDefaults.standard.removeObject(forKey: key)
+    }
+    
+    /// Update the timestamp for a chapter without changing scroll position
+    /// Used when switching to a chapter to mark it as "currently viewing"
+    /// - Parameters:
+    ///   - book: The book name
+    ///   - chapter: The chapter number
+    func updateChapterViewTimestamp(book: String, chapter: Int) {
+        let key = chapterScrollKey(book: book, chapter: chapter)
+        
+        // Get existing scroll position or default to 0
+        let currentPosition = getChapterScrollPosition(book: book, chapter: chapter)
+        
+        // Save with new timestamp
+        let data = ChapterScrollData(scrollPosition: currentPosition, lastViewedDate: Date())
+        
+        if let encoded = try? JSONEncoder().encode(data) {
+            UserDefaults.standard.set(encoded, forKey: key)
+        }
     }
 }
