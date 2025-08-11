@@ -88,14 +88,79 @@ A focused iOS Bible reading app featuring the Brenton Septuagint (Old Testament)
 - ✅ Settings persistence (verse numbers toggle)
 
 ### In Progress
-- 🔄 Drop cap artwork (currently using simple boxed letters with Gothic font)
-- 🔄 Bookmarks functionality
-- 🔄 Highlights functionality
+- 🔄 Enhanced Settings Panel
+  - App name "Pergamene" in Gothic drop cap font
+  - Display Bible texts used (OT: Brenton Septuagint, NT: Berean Standard Bible)
+  - Instructions button opening modal with usage guide
+- 🔄 Improved Floating Chapter Indicator
+  - Extend to top of safe area
+  - Add 30% transparency for better text visibility underneath
+- 🔄 Smart Scroll Position Management
+  - Track last viewed timestamp per chapter
+  - Reset position to top if last viewed > 24 hours ago
+  - Preserve current chapter scroll position
+- 🔄 Verse Sharing Feature
+  - Long press on verse with soft haptic feedback
+  - Selection mode with inverted text highlighting (light brown)
+  - Multi-verse selection via tapping
+  - Share via iOS native share sheet
+  - Format: "verse text" - Book Chapter:Verses
 
 ### To Do
-- 📝 Share functionality
+- 📝 Haptic feedback for page turns
+- 📝 Bookmarks functionality (3-5 ribbon metaphor - TBD)
+- 📝 Highlights functionality
 - 📝 Chapter navigation within book (chapter selector)
 - 📝 App Store submission
+
+## Implementation Details
+
+### Settings Panel Enhancements
+- **App Title**: Display "Pergamene" using UnifrakturMaguntia font (same as drop caps)
+- **Bible Texts Info**: 
+  - "Old Testament: Brenton Septuagint"
+  - "New Testament: Berean Standard Bible"
+- **Instructions Modal**:
+  - "Swipe left/right to navigate chapters"
+  - "Tap the book name to select a different book"
+  - "Pull down from top to access settings"
+  - "Long press on text to share verses"
+  - "Toggle verse numbers in settings"
+
+### Floating Chapter Indicator Improvements
+- Extend background to cover full safe area (status bar)
+- Apply 30% transparency (70% opaque) to allow text visibility underneath
+- Maintain fade in/out animation on scroll
+- Keep current positioning logic based on scroll offset
+
+### Smart Scroll Position Management
+- Store timestamp with each chapter's scroll position in UserDefaults
+- On chapter load:
+  - Check if last viewed > 24 hours ago
+  - If yes, reset to top (position 0)
+  - If no, restore saved position
+- Current chapter always maintains position during session
+
+### Verse Sharing Implementation
+- **Long Press Detection**: 
+  - Add UILongPressGestureRecognizer to verse text views
+  - Trigger on verse boundaries (detect which verse was pressed)
+  - Soft haptic feedback (UIImpactFeedbackGenerator with light style)
+- **Selection Mode UI**:
+  - Overlay mode with dimmed background
+  - Inverted text selection (light brown background, dark text)
+  - Tap verses to toggle selection
+  - "Cancel" and "Share" buttons
+  - Verse numbers also inverted when selected
+- **Share Format**:
+  - Multi-line text with proper verse breaks
+  - Citation format: "- BookName Chapter:StartVerse-EndVerse"
+  - Example: "In the beginning God created... - Genesis 1:1-2"
+
+### Haptic Feedback
+- Page turns: UISelectionFeedbackGenerator (subtle tick)
+- Long press: UIImpactFeedbackGenerator.light
+- Selection toggles: UISelectionFeedbackGenerator
 
 ## Development Phases
 
