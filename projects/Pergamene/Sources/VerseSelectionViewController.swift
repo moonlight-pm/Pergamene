@@ -16,7 +16,15 @@ class VerseSelectionViewController: UIViewController {
     weak var delegate: VerseSelectionViewControllerDelegate?
     var currentBook: Book?
     var currentChapter: Int = 1
-    var verses: [Verse] = []
+    var verses: [Verse] = [] {
+        didSet {
+            if isViewLoaded {
+                fromVersePicker.reloadAllComponents()
+                toVersePicker.reloadAllComponents()
+                updateInitialSelection()
+            }
+        }
+    }
     var startVerse: Int = 1
     var endVerse: Int = 1
     
@@ -103,12 +111,7 @@ class VerseSelectionViewController: UIViewController {
         toVersePicker.tag = 1
         
         // Set initial selections
-        if !verses.isEmpty {
-            let startIndex = max(0, startVerse - 1)
-            let endIndex = max(0, min(endVerse - 1, verses.count - 1))
-            fromVersePicker.selectRow(startIndex, inComponent: 0, animated: false)
-            toVersePicker.selectRow(endIndex, inComponent: 0, animated: false)
-        }
+        updateInitialSelection()
         
         contentView.addSubview(fromVerseLabel)
         contentView.addSubview(toVerseLabel)
@@ -128,7 +131,8 @@ class VerseSelectionViewController: UIViewController {
         previewTextView.textContainerInset = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
         previewTextView.font = UIFont(name: "Cardo-Regular", size: 16) ?? .systemFont(ofSize: 16)
         previewTextView.textColor = UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0)
-        previewTextView.showsVerticalScrollIndicator = false
+        previewTextView.showsVerticalScrollIndicator = true
+        previewTextView.indicatorStyle = .default
         
         contentView.addSubview(previewTextView)
     }
@@ -207,6 +211,16 @@ class VerseSelectionViewController: UIViewController {
     
     // MARK: - Helper Methods
     
+    private func updateInitialSelection() {
+        if !verses.isEmpty {
+            let startIndex = max(0, min(startVerse - 1, verses.count - 1))
+            let endIndex = max(0, min(endVerse - 1, verses.count - 1))
+            fromVersePicker.selectRow(startIndex, inComponent: 0, animated: false)
+            toVersePicker.selectRow(endIndex, inComponent: 0, animated: false)
+            updatePreview()
+        }
+    }
+    
     private func updatePreview() {
         guard !verses.isEmpty else { return }
         
@@ -238,10 +252,6 @@ class VerseSelectionViewController: UIViewController {
         }
         
         previewTextView.text = previewText.trimmingCharacters(in: .whitespaces)
-        
-        // Update stored selection
-        startVerse = actualFromIndex + 1
-        endVerse = actualToIndex + 1
     }
     
     // MARK: - Actions
