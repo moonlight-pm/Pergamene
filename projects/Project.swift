@@ -14,7 +14,12 @@ let project = Project(
         ],
         configurations: [
             .debug(name: "Debug", settings: [:], xcconfig: configPath),
-            .release(name: "Release", settings: [:], xcconfig: configPath)
+            .release(name: "Release", settings: [
+                "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                "SWIFT_COMPILATION_MODE": "wholemodule",
+                "ENABLE_BITCODE": "NO",
+                "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym"
+            ], xcconfig: configPath)
         ]
     ),
     targets: [
@@ -43,6 +48,8 @@ let project = Project(
                     "CFBundleDisplayName": "Pergamene",
                     "CFBundleShortVersionString": "1.0.0",
                     "CFBundleVersion": "1",
+                    "ITSAppUsesNonExemptEncryption": false,
+                    "LSApplicationCategoryType": "public.app-category.books",
                     "UIAppFonts": [
                         "Cardo-Regular.ttf",
                         "Cardo-Bold.ttf",
