@@ -113,6 +113,9 @@ A focused iOS Bible reading app featuring the Brenton Septuagint (Old Testament)
 - 📝 Chapter navigation within book (chapter selector)
 - 📝 App Store submission
 
+### Known Issues
+- 📝 Verse selection sheet has 1-1.5 second delay on first presentation (iOS sheet presentation limitation)
+
 ## Implementation Details
 
 ### Settings Panel Enhancements

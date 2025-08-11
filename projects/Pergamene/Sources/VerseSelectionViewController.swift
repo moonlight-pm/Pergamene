@@ -239,19 +239,24 @@ class VerseSelectionViewController: UIViewController {
             }
         }
         
-        // Add reference
+        // Format with quotes and reference
+        var formattedText = "\""
+        formattedText += previewText.trimmingCharacters(in: .whitespaces)
+        formattedText += "\""
+        
+        // Add reference with long dash
         if let book = currentBook {
             let fromVerse = actualFromIndex + 1
             let toVerse = actualToIndex + 1
             
             if fromVerse == toVerse {
-                previewText += "\n\n- \(book.name) \(currentChapter):\(fromVerse)"
+                formattedText += "\n— \(book.name) \(currentChapter):\(fromVerse)"
             } else {
-                previewText += "\n\n- \(book.name) \(currentChapter):\(fromVerse)-\(toVerse)"
+                formattedText += "\n— \(book.name) \(currentChapter):\(fromVerse)-\(toVerse)"
             }
         }
         
-        previewTextView.text = previewText.trimmingCharacters(in: .whitespaces)
+        previewTextView.text = formattedText
     }
     
     // MARK: - Actions
@@ -269,23 +274,24 @@ class VerseSelectionViewController: UIViewController {
             }
         }
         
-        // Build the share text
-        var shareText = ""
+        // Build the share text with quotes
+        var shareText = "\""
         for (_, text) in selectedVerses {
             shareText += text + " "
         }
+        shareText = shareText.trimmingCharacters(in: .whitespaces) + "\""
         
-        // Add reference
+        // Add reference with long dash
         let fromVerse = fromIndex + 1
         let toVerse = toIndex + 1
         
         if fromVerse == toVerse {
-            shareText += "\n\n- \(book.name) \(currentChapter):\(fromVerse)"
+            shareText += "\n— \(book.name) \(currentChapter):\(fromVerse)"
         } else {
-            shareText += "\n\n- \(book.name) \(currentChapter):\(fromVerse)-\(toVerse)"
+            shareText += "\n— \(book.name) \(currentChapter):\(fromVerse)-\(toVerse)"
         }
         
-        let finalShareText = shareText.trimmingCharacters(in: .whitespaces)
+        let finalShareText = shareText
         
         // Present share sheet directly from this controller
         let shareVC = UIActivityViewController(

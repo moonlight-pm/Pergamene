@@ -12,12 +12,18 @@ class ChapterContainerViewController: UIViewController {
     private var currentBook: Book?
     private var currentChapterNumber: Int = 1
     
+    // Splash screen
+    private let splashView = UIView()
+    private let splashLabel = UILabel()
+    private let splashSubtitleLabel = UILabel()
+    
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
         
+        setupSplashScreen()
         setupPageViewController()
         setupNotifications()
         loadLastReadingPosition()
@@ -28,6 +34,53 @@ class ChapterContainerViewController: UIViewController {
     }
     
     // MARK: - Setup Methods
+    
+    private func setupSplashScreen() {
+        splashView.translatesAutoresizingMaskIntoConstraints = false
+        splashView.backgroundColor = UIColor.parchmentTexture
+        
+        // App name label with Gothic font
+        splashLabel.translatesAutoresizingMaskIntoConstraints = false
+        splashLabel.text = "Pergamene"
+        let gothicFont = UIFont(name: "UnifrakturMaguntia-Book", size: 48) ??
+                        UIFont(name: "UnifrakturMaguntia", size: 48) ??
+                        UIFont(name: "Unifraktur Maguntia", size: 48)
+        splashLabel.font = gothicFont ?? UIFont(name: "Cardo-Bold", size: 48) ?? .systemFont(ofSize: 48, weight: .bold)
+        splashLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0)
+        splashLabel.textAlignment = .center
+        
+        // Subtitle
+        splashSubtitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        splashSubtitleLabel.text = "Loading Scripture..."
+        splashSubtitleLabel.font = UIFont(name: "Cardo-Regular", size: 16) ?? .systemFont(ofSize: 16)
+        splashSubtitleLabel.textColor = UIColor(red: 0.25, green: 0.18, blue: 0.12, alpha: 1.0)
+        splashSubtitleLabel.textAlignment = .center
+        
+        view.addSubview(splashView)
+        splashView.addSubview(splashLabel)
+        splashView.addSubview(splashSubtitleLabel)
+        
+        NSLayoutConstraint.activate([
+            splashView.topAnchor.constraint(equalTo: view.topAnchor),
+            splashView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            splashView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            splashView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            
+            splashLabel.centerXAnchor.constraint(equalTo: splashView.centerXAnchor),
+            splashLabel.centerYAnchor.constraint(equalTo: splashView.centerYAnchor, constant: -20),
+            
+            splashSubtitleLabel.topAnchor.constraint(equalTo: splashLabel.bottomAnchor, constant: 10),
+            splashSubtitleLabel.centerXAnchor.constraint(equalTo: splashView.centerXAnchor)
+        ])
+    }
+    
+    private func removeSplashScreen() {
+        UIView.animate(withDuration: 0.3, animations: {
+            self.splashView.alpha = 0
+        }) { _ in
+            self.splashView.removeFromSuperview()
+        }
+    }
     
     private func setupPageViewController() {
         pageViewController = UIPageViewController(
@@ -78,7 +131,10 @@ class ChapterContainerViewController: UIViewController {
             [chapterVC],
             direction: .forward,
             animated: false,
-            completion: nil
+            completion: { [weak self] _ in
+                // Remove splash screen after content is loaded
+                self?.removeSplashScreen()
+            }
         )
     }
     

@@ -21,7 +21,6 @@ class ChapterViewController: UIViewController {
     private var currentChapterVerses: [Verse] = []
     private var selectedVerseStart: Int = 1
     private var selectedVerseEnd: Int = 1
-    private var preloadedVerseSelectionVC: VerseSelectionViewController?
     
     // Floating chapter indicator
     private let floatingIndicatorView = UIView()
@@ -76,7 +75,6 @@ class ChapterViewController: UIViewController {
         setupSettingsOverlay()
         setupGestures()
         setupNotifications()
-        preloadVerseSelectionViewController()
     }
     
     override func viewSafeAreaInsetsDidChange() {
@@ -590,17 +588,8 @@ class ChapterViewController: UIViewController {
         return verses.number
     }
     
-    private func preloadVerseSelectionViewController() {
-        // Create and preload the view controller for faster first presentation
-        let selectionVC = VerseSelectionViewController()
-        // Force view loading to preload all UI components
-        _ = selectionVC.view
-        preloadedVerseSelectionVC = selectionVC
-    }
-    
     private func presentVerseSelectionSheet() {
-        // Use preloaded instance if available
-        let selectionVC = preloadedVerseSelectionVC ?? VerseSelectionViewController()
+        let selectionVC = VerseSelectionViewController()
         
         // Update with current data
         selectionVC.currentBook = currentBook
@@ -620,15 +609,6 @@ class ChapterViewController: UIViewController {
         }
         
         present(selectionVC, animated: true)
-        
-        // Clear the preloaded instance and prepare a new one
-        if preloadedVerseSelectionVC != nil {
-            preloadedVerseSelectionVC = nil
-            // Preload a new instance for next time after a delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.preloadVerseSelectionViewController()
-            }
-        }
     }
 }
 
