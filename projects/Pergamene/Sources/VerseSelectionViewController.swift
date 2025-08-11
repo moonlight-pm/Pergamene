@@ -42,6 +42,12 @@ class VerseSelectionViewController: UIViewController {
         updatePreview()
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // Style the presentation to match our app
+        overrideUserInterfaceStyle = .light
+    }
+    
     // MARK: - Setup Methods
     
     private func setupViews() {
@@ -63,8 +69,8 @@ class VerseSelectionViewController: UIViewController {
     
     private func setupTitle() {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.text = "Select Verses to Share"
-        titleLabel.font = UIFont(name: "Cardo-Bold", size: 20) ?? .systemFont(ofSize: 20, weight: .bold)
+        titleLabel.text = "Share Verses"
+        titleLabel.font = UIFont(name: "Cardo-Bold", size: 24) ?? .systemFont(ofSize: 24, weight: .bold)
         titleLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0)
         titleLabel.textAlignment = .center
         
@@ -75,14 +81,14 @@ class VerseSelectionViewController: UIViewController {
         // From verse label
         fromVerseLabel.translatesAutoresizingMaskIntoConstraints = false
         fromVerseLabel.text = "From:"
-        fromVerseLabel.font = UIFont(name: "Cardo-Bold", size: 16) ?? .systemFont(ofSize: 16, weight: .semibold)
-        fromVerseLabel.textColor = UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0)
+        fromVerseLabel.font = UIFont(name: "Cardo-Bold", size: 17) ?? .systemFont(ofSize: 17, weight: .semibold)
+        fromVerseLabel.textColor = UIColor(red: 0.25, green: 0.18, blue: 0.12, alpha: 1.0)
         
         // To verse label
         toVerseLabel.translatesAutoresizingMaskIntoConstraints = false
         toVerseLabel.text = "To:"
-        toVerseLabel.font = UIFont(name: "Cardo-Bold", size: 16) ?? .systemFont(ofSize: 16, weight: .semibold)
-        toVerseLabel.textColor = UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0)
+        toVerseLabel.font = UIFont(name: "Cardo-Bold", size: 17) ?? .systemFont(ofSize: 17, weight: .semibold)
+        toVerseLabel.textColor = UIColor(red: 0.25, green: 0.18, blue: 0.12, alpha: 1.0)
         
         // From verse picker
         fromVersePicker.translatesAutoresizingMaskIntoConstraints = false
@@ -113,15 +119,16 @@ class VerseSelectionViewController: UIViewController {
     private func setupPreview() {
         previewTextView.translatesAutoresizingMaskIntoConstraints = false
         previewTextView.isEditable = false
-        previewTextView.isScrollEnabled = false  // Disable scrolling to allow dynamic height
-        // Light style with border
-        previewTextView.backgroundColor = .clear
+        previewTextView.isScrollEnabled = true  // Enable scrolling for overflow
+        // Light parchment style with border
+        previewTextView.backgroundColor = UIColor(red: 0.98, green: 0.96, blue: 0.92, alpha: 0.5)
         previewTextView.layer.cornerRadius = 8
         previewTextView.layer.borderWidth = 1
         previewTextView.layer.borderColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 0.3).cgColor
-        previewTextView.contentInset = UIEdgeInsets(top: 15, left: 15, bottom: 15, right: 15)
+        previewTextView.textContainerInset = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
         previewTextView.font = UIFont(name: "Cardo-Regular", size: 16) ?? .systemFont(ofSize: 16)
         previewTextView.textColor = UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0)
+        previewTextView.showsVerticalScrollIndicator = false
         
         contentView.addSubview(previewTextView)
     }
@@ -130,11 +137,17 @@ class VerseSelectionViewController: UIViewController {
         shareButton.translatesAutoresizingMaskIntoConstraints = false
         shareButton.setTitle("Share", for: .normal)
         shareButton.titleLabel?.font = UIFont(name: "Cardo-Bold", size: 18) ?? .systemFont(ofSize: 18, weight: .bold)
-        shareButton.tintColor = .white
-        shareButton.backgroundColor = UIColor(red: 0.45, green: 0.35, blue: 0.25, alpha: 1.0)
+        shareButton.setTitleColor(UIColor(red: 0.98, green: 0.96, blue: 0.92, alpha: 1.0), for: .normal)
+        shareButton.backgroundColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 1.0)
         shareButton.layer.cornerRadius = 8
-        shareButton.contentEdgeInsets = UIEdgeInsets(top: 12, left: 24, bottom: 12, right: 24)
+        shareButton.contentEdgeInsets = UIEdgeInsets(top: 14, left: 32, bottom: 14, right: 32)
         shareButton.addTarget(self, action: #selector(shareTapped), for: .touchUpInside)
+        
+        // Add subtle shadow
+        shareButton.layer.shadowColor = UIColor.black.cgColor
+        shareButton.layer.shadowOffset = CGSize(width: 0, height: 2)
+        shareButton.layer.shadowOpacity = 0.15
+        shareButton.layer.shadowRadius = 4
         
         contentView.addSubview(shareButton)
     }
@@ -179,12 +192,11 @@ class VerseSelectionViewController: UIViewController {
             toVersePicker.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             toVersePicker.heightAnchor.constraint(equalToConstant: 100),
             
-            // Preview text - dynamic height with max constraint
+            // Preview text - fixed height with scrolling
             previewTextView.topAnchor.constraint(equalTo: toVersePicker.bottomAnchor, constant: 30),
             previewTextView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             previewTextView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            previewTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 80),
-            previewTextView.heightAnchor.constraint(lessThanOrEqualToConstant: 250),
+            previewTextView.heightAnchor.constraint(equalToConstant: 180),
             
             // Share button
             shareButton.topAnchor.constraint(equalTo: previewTextView.bottomAnchor, constant: 20),
@@ -225,16 +237,7 @@ class VerseSelectionViewController: UIViewController {
             }
         }
         
-        let trimmedText = previewText.trimmingCharacters(in: .whitespaces)
-        
-        // Check if text is too long and would push share button off screen
-        let maxLength = 500  // Approximate character limit
-        if trimmedText.count > maxLength {
-            let truncated = String(trimmedText.prefix(maxLength))
-            previewTextView.text = truncated + "..."
-        } else {
-            previewTextView.text = trimmedText
-        }
+        previewTextView.text = previewText.trimmingCharacters(in: .whitespaces)
         
         // Update stored selection
         startVerse = actualFromIndex + 1
@@ -256,7 +259,7 @@ class VerseSelectionViewController: UIViewController {
             }
         }
         
-        // Share the verses
+        // Build the share text
         var shareText = ""
         for (_, text) in selectedVerses {
             shareText += text + " "
@@ -272,17 +275,21 @@ class VerseSelectionViewController: UIViewController {
             shareText += "\n\n- \(book.name) \(currentChapter):\(fromVerse)-\(toVerse)"
         }
         
+        let finalShareText = shareText.trimmingCharacters(in: .whitespaces)
+        
+        // Present share sheet directly from this controller
         let shareVC = UIActivityViewController(
-            activityItems: [shareText.trimmingCharacters(in: .whitespaces)],
+            activityItems: [finalShareText],
             applicationActivities: nil
         )
         
-        // Dismiss this sheet first, then present share sheet
-        dismiss(animated: true) { [weak self] in
-            if let presenter = self?.presentingViewController {
-                presenter.present(shareVC, animated: true)
-            }
+        // For iPad compatibility
+        if let popover = shareVC.popoverPresentationController {
+            popover.sourceView = shareButton
+            popover.sourceRect = shareButton.bounds
         }
+        
+        present(shareVC, animated: true)
         
         // Notify delegate
         delegate?.verseSelectionViewController(self, didSelectVerses: selectedVerses, book: book, chapter: currentChapter)
