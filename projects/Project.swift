@@ -39,7 +39,9 @@ let project = Project(
                     ],
                     "UILaunchScreen": [
                         "UIColorName": "",
-                        "UIImageName": "",
+                        "UIImageName": "splash",
+                        "UIImageRespectsSafeAreaInsets": true,
+                        "UILaunchScreenFillMode": "aspectFill"
                     ],
                     "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"],
                     "UIRequiresFullScreen": true,
