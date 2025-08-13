@@ -472,6 +472,11 @@ class ChapterViewController: UIViewController {
     // MARK: - Settings Gesture Handlers
     
     @objc private func handleSettingsPanGesture(_ gesture: UIPanGestureRecognizer) {
+        // Dismiss bookmark panel when interacting with settings
+        if bookmarkPanelVisible {
+            hideBookmarkPanel()
+        }
+        
         let translation = gesture.translation(in: view)
         let velocity = gesture.velocity(in: view)
         
@@ -602,6 +607,11 @@ class ChapterViewController: UIViewController {
     }
     
     @objc private func bookTitleTapped() {
+        // Dismiss bookmark panel when opening book selection
+        if bookmarkPanelVisible {
+            hideBookmarkPanel()
+        }
+        
         let bookVC = BookSelectionViewController()
         bookVC.delegate = self
         bookVC.modalPresentationStyle = .pageSheet
@@ -895,6 +905,11 @@ extension ChapterViewController: BookSelectionDelegate {
 
 extension ChapterViewController: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        // Dismiss bookmark panel on scroll
+        if bookmarkPanelVisible {
+            hideBookmarkPanel()
+        }
+        
         let yOffset = scrollView.contentOffset.y
         
         // Update floating indicator visibility
@@ -997,7 +1012,7 @@ extension ChapterViewController {
         }
     }
     
-    private func hideBookmarkPanel() {
+    func hideBookmarkPanel() {
         bookmarkPanelLeadingConstraint?.constant = -70
         
         UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {

@@ -1,0 +1,6 @@
+// Local developer configuration
+// Add your Apple Developer Team ID here
+// You can find this in Xcode: Preferences > Accounts > Your Apple ID > Team ID
+// Or in the Apple Developer portal
+
+DEVELOPMENT_TEAM = 2J9SSS96T4

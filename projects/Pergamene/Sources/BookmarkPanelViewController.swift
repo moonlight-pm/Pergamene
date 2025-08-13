@@ -24,22 +24,23 @@ class BookmarkButton: UIButton {
     }
     
     private func setupAppearance() {
-        // Ribbon-like appearance
+        // Ribbon-like appearance extending to left edge
         backgroundColor = BookmarkColors.colorFromHex(bookmark.colorHex)
-        layer.cornerRadius = 4
+        layer.cornerRadius = 6
         layer.maskedCorners = [.layerMaxXMinYCorner, .layerMaxXMaxYCorner] // Round only right corners
         
         // Add subtle shadow for depth
         layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOffset = CGSize(width: 2, height: 0)
-        layer.shadowOpacity = 0.2
-        layer.shadowRadius = 3
+        layer.shadowOffset = CGSize(width: 2, height: 1)
+        layer.shadowOpacity = 0.3
+        layer.shadowRadius = 4
         
         // Text styling
         setTitle(bookmark.shortName, for: .normal)
         setTitleColor(.white, for: .normal)
         titleLabel?.font = UIFont(name: "Cardo-Bold", size: 14) ?? .systemFont(ofSize: 14, weight: .bold)
-        contentHorizontalAlignment = .center
+        contentHorizontalAlignment = .left
+        contentEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 8)
         
         // Add subtle gradient overlay for ribbon effect
         let gradientLayer = CAGradientLayer()
@@ -113,18 +114,18 @@ class BookmarkPanelViewController: UIViewController {
         
         // Stack view for bookmark buttons
         stackView.axis = .vertical
-        stackView.spacing = 8
+        stackView.spacing = 10
         stackView.alignment = .fill
-        stackView.distribution = .equalSpacing
+        stackView.distribution = .fillProportionally
         
-        // Add button styling
+        // Add button styling - matching theme
         addButton.setTitle("+", for: .normal)
         addButton.titleLabel?.font = UIFont(name: "Cardo-Bold", size: 28) ?? .systemFont(ofSize: 28, weight: .bold)
-        addButton.setTitleColor(UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 1.0), for: .normal)
-        addButton.backgroundColor = UIColor(red: 0.95, green: 0.92, blue: 0.88, alpha: 1.0)
+        addButton.setTitleColor(UIColor(red: 0.95, green: 0.92, blue: 0.88, alpha: 1.0), for: .normal)
+        addButton.backgroundColor = UIColor(red: 0.45, green: 0.35, blue: 0.25, alpha: 0.8)
         addButton.layer.cornerRadius = 25
-        addButton.layer.borderWidth = 2
-        addButton.layer.borderColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 0.3).cgColor
+        addButton.layer.borderWidth = 1
+        addButton.layer.borderColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 0.5).cgColor
         addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
         
         // Layout
@@ -139,16 +140,16 @@ class BookmarkPanelViewController: UIViewController {
         addButton.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
-            // Container
+            // Container - extend into safe areas
             containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            containerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            containerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            containerView.topAnchor.constraint(equalTo: view.topAnchor),
+            containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             containerView.widthAnchor.constraint(equalToConstant: panelWidth),
             
-            // Scroll view
-            scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 10),
-            scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
-            scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 20),
+            // Scroll view - extend to edges
+            scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
             scrollView.bottomAnchor.constraint(equalTo: addButton.topAnchor, constant: -20),
             
             // Stack view
@@ -158,9 +159,9 @@ class BookmarkPanelViewController: UIViewController {
             stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
             stackView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
             
-            // Add button
+            // Add button - positioned above safe area
             addButton.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            addButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -30),
+            addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30),
             addButton.widthAnchor.constraint(equalToConstant: 50),
             addButton.heightAnchor.constraint(equalToConstant: 50)
         ])
@@ -262,6 +263,10 @@ class BookmarkPanelViewController: UIViewController {
             let action = UIAlertAction(title: colorName, style: .default) { [weak self] _ in
                 BookmarkManager.shared.updateBookmarkColor(bookmark, colorHex: colorHex)
                 self?.loadBookmarks()
+                // Dismiss panel after color change
+                if let delegate = self?.delegate as? ChapterViewController {
+                    delegate.hideBookmarkPanel()
+                }
             }
             
             // Add color indicator
@@ -275,6 +280,10 @@ class BookmarkPanelViewController: UIViewController {
         let deleteAction = UIAlertAction(title: "Delete Bookmark", style: .destructive) { [weak self] _ in
             BookmarkManager.shared.deleteBookmark(bookmark)
             self?.loadBookmarks()
+            // Dismiss panel after deletion
+            if let delegate = self?.delegate as? ChapterViewController {
+                delegate.hideBookmarkPanel()
+            }
         }
         alertController.addAction(deleteAction)
         
