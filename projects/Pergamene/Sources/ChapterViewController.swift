@@ -28,6 +28,13 @@ class ChapterViewController: UIViewController {
     private var floatingIndicatorVisible = false
     private var floatingIndicatorHeightConstraint: NSLayoutConstraint?
     
+    // Bookmark panel
+    private var bookmarkPanelViewController: BookmarkPanelViewController?
+    private var bookmarkPanelContainerView: UIView?
+    private var bookmarkPanelLeadingConstraint: NSLayoutConstraint?
+    private var bookmarkPanelVisible = false
+    private var hasJumpedViaBookmark = false
+    
     // Settings overlay system
     private let settingsOverlayView = UIView()
     private let settingsDimmingView = UIView()
@@ -73,6 +80,7 @@ class ChapterViewController: UIViewController {
         
         setupViews()
         setupSettingsOverlay()
+        setupBookmarkPanel()
         setupGestures()
         setupNotifications()
     }
@@ -332,6 +340,43 @@ class ChapterViewController: UIViewController {
         settingsDimmingView.layer.zPosition = 50
     }
     
+    private func setupBookmarkPanel() {
+        // Container view for the bookmark panel
+        bookmarkPanelContainerView = UIView()
+        bookmarkPanelContainerView?.translatesAutoresizingMaskIntoConstraints = false
+        bookmarkPanelContainerView?.isHidden = true
+        
+        // Create and configure bookmark panel
+        bookmarkPanelViewController = BookmarkPanelViewController()
+        bookmarkPanelViewController?.delegate = self
+        
+        if let containerView = bookmarkPanelContainerView,
+           let panelVC = bookmarkPanelViewController {
+            view.addSubview(containerView)
+            
+            addChild(panelVC)
+            containerView.addSubview(panelVC.view)
+            panelVC.didMove(toParent: self)
+            
+            panelVC.view.translatesAutoresizingMaskIntoConstraints = false
+            
+            // Setup constraints
+            bookmarkPanelLeadingConstraint = containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: -70)
+            
+            NSLayoutConstraint.activate([
+                containerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+                containerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+                containerView.widthAnchor.constraint(equalToConstant: 70),
+                bookmarkPanelLeadingConstraint!,
+                
+                panelVC.view.topAnchor.constraint(equalTo: containerView.topAnchor),
+                panelVC.view.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+                panelVC.view.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+                panelVC.view.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+            ])
+        }
+    }
+    
     private func setupSettingsViewController() {
         settingsViewController = SettingsViewController()
         
@@ -361,6 +406,10 @@ class ChapterViewController: UIViewController {
         view.addGestureRecognizer(settingsPanGestureRecognizer!)
         
         scrollView.panGestureRecognizer.require(toFail: settingsPanGestureRecognizer!)
+        
+        // Add tap gesture for bookmark panel (left edge)
+        let bookmarkTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleBookmarkPanelTap(_:)))
+        view.addGestureRecognizer(bookmarkTapGesture)
     }
     
     private func setupNotifications() {
@@ -906,5 +955,145 @@ extension ChapterViewController: UIGestureRecognizerDelegate {
             }
         }
         return true
+    }
+}
+
+// MARK: - Bookmark Panel Methods
+
+extension ChapterViewController {
+    
+    @objc private func handleBookmarkPanelTap(_ gesture: UITapGestureRecognizer) {
+        let location = gesture.location(in: view)
+        
+        // Check if tap is in the left 50 points of the screen
+        if location.x < 50 {
+            toggleBookmarkPanel()
+        }
+    }
+    
+    private func toggleBookmarkPanel() {
+        if bookmarkPanelVisible {
+            hideBookmarkPanel()
+        } else {
+            showBookmarkPanel()
+        }
+    }
+    
+    private func showBookmarkPanel() {
+        guard let containerView = bookmarkPanelContainerView else { return }
+        
+        // Refresh bookmarks
+        bookmarkPanelViewController?.loadBookmarks()
+        bookmarkPanelViewController?.setShowReturnButton(hasJumpedViaBookmark)
+        
+        // Show and animate panel
+        containerView.isHidden = false
+        bookmarkPanelLeadingConstraint?.constant = 0
+        
+        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5) {
+            self.view.layoutIfNeeded()
+        } completion: { _ in
+            self.bookmarkPanelVisible = true
+        }
+    }
+    
+    private func hideBookmarkPanel() {
+        bookmarkPanelLeadingConstraint?.constant = -70
+        
+        UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {
+            self.view.layoutIfNeeded()
+        } completion: { _ in
+            self.bookmarkPanelContainerView?.isHidden = true
+            self.bookmarkPanelVisible = false
+        }
+    }
+}
+
+// MARK: - BookmarkPanelDelegate
+
+extension ChapterViewController: BookmarkPanelDelegate {
+    
+    func bookmarkPanelDidAddBookmark(_ panel: BookmarkPanelViewController) {
+        guard let book = currentBook else { return }
+        
+        // Save current position before adding bookmark
+        let scrollPosition = scrollView.contentOffset.y
+        BookmarkManager.shared.saveLastNonBookmarkPosition(
+            bookName: book.name,
+            chapter: currentChapter,
+            scrollPosition: scrollPosition
+        )
+        
+        // Add bookmark
+        _ = BookmarkManager.shared.addBookmark(bookName: book.name, chapter: currentChapter)
+        
+        // Reload bookmarks in panel
+        panel.loadBookmarks()
+        
+        // Hide panel after adding
+        hideBookmarkPanel()
+    }
+    
+    func bookmarkPanel(_ panel: BookmarkPanelViewController, didSelectBookmark bookmark: BookmarkItem) {
+        // Save current position if it's not a bookmark
+        if let book = currentBook,
+           !BookmarkManager.shared.bookmarkExists(for: book.name, chapter: currentChapter) {
+            let scrollPosition = scrollView.contentOffset.y
+            BookmarkManager.shared.saveLastNonBookmarkPosition(
+                bookName: book.name,
+                chapter: currentChapter,
+                scrollPosition: scrollPosition
+            )
+        }
+        
+        // Navigate to bookmark
+        navigateToBookmark(bookmark)
+        hasJumpedViaBookmark = true
+        
+        // Hide panel
+        hideBookmarkPanel()
+    }
+    
+    func bookmarkPanelDidRequestReturn(_ panel: BookmarkPanelViewController) {
+        guard let lastPosition = BookmarkManager.shared.getLastNonBookmarkPosition() else { return }
+        
+        // Navigate to last non-bookmark position
+        navigateToPosition(bookName: lastPosition.bookName, chapter: lastPosition.chapter, scrollPosition: lastPosition.scrollPosition)
+        
+        // Clear the last position after returning
+        BookmarkManager.shared.clearLastNonBookmarkPosition()
+        hasJumpedViaBookmark = false
+        
+        // Hide panel
+        hideBookmarkPanel()
+    }
+    
+    private func navigateToBookmark(_ bookmark: BookmarkItem) {
+        // Find the book
+        guard let targetBook = ScriptureManager.shared.books.first(where: { $0.name == bookmark.bookName }) else { return }
+        
+        // Navigate to the chapter
+        navigateToPosition(bookName: bookmark.bookName, chapter: bookmark.chapter, scrollPosition: 0)
+    }
+    
+    private func navigateToPosition(bookName: String, chapter: Int, scrollPosition: CGFloat) {
+        // Check if we need to change book/chapter
+        if currentBook?.name != bookName || currentChapter != chapter {
+            // Find the book
+            guard let targetBook = ScriptureManager.shared.books.first(where: { $0.name == bookName }) else { return }
+            
+            // Load the new chapter
+            loadChapter(book: targetBook, chapter: chapter)
+            
+            // Notify parent container if needed
+            if let containerVC = parent as? ChapterContainerViewController {
+                containerVC.updateForBookChange(book: targetBook, chapter: chapter)
+            }
+        }
+        
+        // Restore scroll position after a delay to ensure content is loaded
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.scrollView.setContentOffset(CGPoint(x: 0, y: scrollPosition), animated: true)
+        }
     }
 }

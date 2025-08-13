@@ -182,6 +182,20 @@ class ChapterContainerViewController: UIViewController {
         return ScriptureManager.shared.books[currentIndex - 1]
     }
     
+    // MARK: - Public Methods
+    
+    func updateForBookChange(book: Book, chapter: Int) {
+        // Update current state
+        currentBook = book
+        currentChapterNumber = chapter
+        
+        // Create new chapter view controller
+        let chapterVC = createChapterViewController(book: book, chapter: chapter)
+        
+        // Update page view controller
+        pageViewController.setViewControllers([chapterVC], direction: .forward, animated: false, completion: nil)
+    }
+    
     // MARK: - Notification Handlers
     
     @objc private func handleChapterSelection(_ notification: Notification) {
