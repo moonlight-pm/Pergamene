@@ -781,6 +781,7 @@ extension ChapterViewController {
         let textView = UITextView()
         textView.translatesAutoresizingMaskIntoConstraints = false
         textView.isEditable = false
+        textView.isSelectable = false  // Disable text selection
         textView.isScrollEnabled = false
         textView.backgroundColor = .clear
         textView.textContainerInset = UIEdgeInsets.zero

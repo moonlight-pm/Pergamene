@@ -186,7 +186,7 @@ class BookSelectionViewController: UIViewController {
         
         // Create attributed string for book name and chapter count
         let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = .left
+        paragraphStyle.alignment = .center
         
         let titleAttributes: [NSAttributedString.Key: Any] = [
             .font: UIFont(name: "Cardo-Regular", size: 18) ?? .systemFont(ofSize: 18),
@@ -208,7 +208,7 @@ class BookSelectionViewController: UIViewController {
         
         button.setAttributedTitle(attributedTitle, for: .normal)
         button.titleLabel?.numberOfLines = 2
-        button.contentHorizontalAlignment = .left
+        button.contentHorizontalAlignment = .center
         
         // Use newer UIButton configuration for iOS 15+ instead of deprecated contentEdgeInsets
         if #available(iOS 15.0, *) {

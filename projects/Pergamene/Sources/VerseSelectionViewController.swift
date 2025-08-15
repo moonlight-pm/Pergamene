@@ -122,6 +122,7 @@ class VerseSelectionViewController: UIViewController {
     private func setupPreview() {
         previewTextView.translatesAutoresizingMaskIntoConstraints = false
         previewTextView.isEditable = false
+        previewTextView.isSelectable = false  // Disable text selection
         previewTextView.isScrollEnabled = true  // Enable scrolling for overflow
         // Light parchment style with border
         previewTextView.backgroundColor = UIColor(red: 0.98, green: 0.96, blue: 0.92, alpha: 0.5)
