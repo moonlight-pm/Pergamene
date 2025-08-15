@@ -34,16 +34,18 @@ class BookmarkButton: UIButton {
         layer.shadowOpacity = 0.3
         layer.shadowRadius = 4
         
-        // Text styling
-        setTitle(bookmark.shortName, for: .normal)
-        setTitleColor(.white, for: .normal)
-        titleLabel?.font = UIFont(name: "Cardo-Bold", size: 14) ?? .systemFont(ofSize: 14, weight: .bold)
-        contentHorizontalAlignment = .left
-        
-        // Use configuration instead of deprecated contentEdgeInsets
+        // Use configuration for all button styling
         var config = UIButton.Configuration.plain()
+        config.title = bookmark.shortName
+        config.baseForegroundColor = .white
         config.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8)
         config.titleAlignment = .leading
+        
+        // Set the font through attributed string
+        var titleContainer = AttributeContainer()
+        titleContainer.font = UIFont(name: "Cardo-Bold", size: 14) ?? .systemFont(ofSize: 14, weight: .bold)
+        config.attributedTitle = AttributedString(bookmark.shortName, attributes: titleContainer)
+        
         self.configuration = config
         
         // Add subtle gradient overlay for ribbon effect

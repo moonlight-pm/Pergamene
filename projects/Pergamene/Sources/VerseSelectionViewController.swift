@@ -140,17 +140,21 @@ class VerseSelectionViewController: UIViewController {
     
     private func setupShareButton() {
         shareButton.translatesAutoresizingMaskIntoConstraints = false
-        shareButton.setTitle("Share", for: .normal)
-        shareButton.titleLabel?.font = UIFont(name: "Cardo-Bold", size: 18) ?? .systemFont(ofSize: 18, weight: .bold)
-        shareButton.setTitleColor(UIColor(red: 0.98, green: 0.96, blue: 0.92, alpha: 1.0), for: .normal)
         shareButton.backgroundColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 1.0)
         shareButton.layer.cornerRadius = 8
         
-        // Use configuration instead of deprecated contentEdgeInsets
+        // Use configuration for all button styling
         var shareConfig = UIButton.Configuration.plain()
+        shareConfig.title = "Share"
+        shareConfig.baseForegroundColor = UIColor(red: 0.98, green: 0.96, blue: 0.92, alpha: 1.0)
         shareConfig.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 32, bottom: 14, trailing: 32)
-        shareButton.configuration = shareConfig
         
+        // Set the font through attributed string
+        var titleContainer = AttributeContainer()
+        titleContainer.font = UIFont(name: "Cardo-Bold", size: 18) ?? .systemFont(ofSize: 18, weight: .bold)
+        shareConfig.attributedTitle = AttributedString("Share", attributes: titleContainer)
+        
+        shareButton.configuration = shareConfig
         shareButton.addTarget(self, action: #selector(shareTapped), for: .touchUpInside)
         
         // Add subtle shadow
