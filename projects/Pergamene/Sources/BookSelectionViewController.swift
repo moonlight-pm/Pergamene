@@ -22,7 +22,6 @@ class BookSelectionViewController: UIViewController {
     
     private let scrollView = UIScrollView()
     private let contentView = UIView()
-    private let titleLabel = UILabel()
     private let oldTestamentLabel = UILabel()
     private let newTestamentLabel = UILabel()
     private let oldTestamentStack = UIStackView()
@@ -51,27 +50,25 @@ class BookSelectionViewController: UIViewController {
     
     private func setupViews() {
         setupScrollView()
-        setupTitle()
         setupTestamentSections()
         setupConstraints()
     }
     
     private func setupScrollView() {
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        contentView.translatesAutoresizingMaskIntoConstraints = false
+        // Set the main view background to a neutral color
+        view.backgroundColor = UIColor(red: 0.95, green: 0.94, blue: 0.92, alpha: 1.0)
         
-        view.addSubview(titleLabel)
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.backgroundColor = .clear
+        scrollView.showsVerticalScrollIndicator = true
+        
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.backgroundColor = UIColor.parchmentTexture
+        
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
     }
     
-    private func setupTitle() {
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.text = "Select Book"
-        titleLabel.font = UIFont(name: "Cardo-Bold", size: 28) ?? .systemFont(ofSize: 28, weight: .bold)
-        titleLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0)
-        titleLabel.textAlignment = .center
-    }
     
     private func setupTestamentSections() {
         // Old Testament section - "After Creation"
@@ -111,13 +108,8 @@ class BookSelectionViewController: UIViewController {
     
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Title
-            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            
-            // Scroll view
-            scrollView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 20),
+            // Scroll view - now starts at top
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -129,8 +121,8 @@ class BookSelectionViewController: UIViewController {
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
             
             // Two-column layout
-            // Old Testament (After Creation) - Left column
-            oldTestamentLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+            // Old Testament (After Creation) - Left column  
+            oldTestamentLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 60),  // Extra padding from top
             oldTestamentLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             oldTestamentLabel.widthAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 0.5, constant: -30),
             
@@ -139,7 +131,7 @@ class BookSelectionViewController: UIViewController {
             oldTestamentStack.widthAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 0.5, constant: -30),
             
             // New Testament (After Christ) - Right column
-            newTestamentLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+            newTestamentLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 60),  // Match OT padding
             newTestamentLabel.leadingAnchor.constraint(equalTo: contentView.centerXAnchor, constant: 10),
             newTestamentLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
