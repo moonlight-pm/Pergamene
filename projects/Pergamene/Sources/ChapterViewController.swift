@@ -33,7 +33,6 @@ class ChapterViewController: UIViewController {
     private var bookmarkPanelContainerView: UIView?
     private var bookmarkPanelLeadingConstraint: NSLayoutConstraint?
     private var bookmarkPanelVisible = false
-    private var hasJumpedViaBookmark = false
     
     // Settings overlay system
     private let settingsOverlayView = UIView()
@@ -1014,7 +1013,6 @@ extension ChapterViewController {
         
         // Refresh bookmarks
         bookmarkPanelViewController?.loadBookmarks()
-        bookmarkPanelViewController?.setShowReturnButton(hasJumpedViaBookmark)
         
         // Show and animate panel
         containerView.isHidden = false
@@ -1046,14 +1044,6 @@ extension ChapterViewController: BookmarkPanelDelegate {
     func bookmarkPanelDidAddBookmark(_ panel: BookmarkPanelViewController) {
         guard let book = currentBook else { return }
         
-        // Save current position before adding bookmark
-        let scrollPosition = scrollView.contentOffset.y
-        BookmarkManager.shared.saveLastNonBookmarkPosition(
-            bookName: book.name,
-            chapter: currentChapter,
-            scrollPosition: scrollPosition
-        )
-        
         // Add bookmark and set as current
         let bookmark = BookmarkManager.shared.addBookmark(bookName: book.name, chapter: currentChapter)
         BookmarkManager.shared.setCurrentBookmark(bookmark)
@@ -1066,37 +1056,11 @@ extension ChapterViewController: BookmarkPanelDelegate {
     }
     
     func bookmarkPanel(_ panel: BookmarkPanelViewController, didSelectBookmark bookmark: BookmarkItem) {
-        // Save current position if it's not a bookmark
-        if let book = currentBook,
-           !BookmarkManager.shared.bookmarkExists(for: book.name, chapter: currentChapter) {
-            let scrollPosition = scrollView.contentOffset.y
-            BookmarkManager.shared.saveLastNonBookmarkPosition(
-                bookName: book.name,
-                chapter: currentChapter,
-                scrollPosition: scrollPosition
-            )
-        }
-        
         // Set as current bookmark
         BookmarkManager.shared.setCurrentBookmark(bookmark)
         
         // Navigate to bookmark
         navigateToBookmark(bookmark)
-        hasJumpedViaBookmark = true
-        
-        // Hide panel
-        hideBookmarkPanel()
-    }
-    
-    func bookmarkPanelDidRequestReturn(_ panel: BookmarkPanelViewController) {
-        guard let lastPosition = BookmarkManager.shared.getLastNonBookmarkPosition() else { return }
-        
-        // Navigate to last non-bookmark position
-        navigateToPosition(bookName: lastPosition.bookName, chapter: lastPosition.chapter, scrollPosition: lastPosition.scrollPosition)
-        
-        // Clear the last position after returning
-        BookmarkManager.shared.clearLastNonBookmarkPosition()
-        hasJumpedViaBookmark = false
         
         // Hide panel
         hideBookmarkPanel()

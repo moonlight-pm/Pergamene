@@ -103,10 +103,12 @@ class BookmarkManager {
         
         // Check if bookmark already exists
         if !bookmarks.contains(where: { $0.bookName == bookName && $0.chapter == chapter }) {
-            // Get abbreviation from the actual book data
-            let abbreviation = ScriptureManager.shared.books
+            // Get abbreviation from the actual book data and capitalize properly
+            let rawAbbreviation = ScriptureManager.shared.books
                 .first(where: { $0.name == bookName })?
                 .abbreviation ?? String(bookName.prefix(3))
+            // Capitalize first letter only (e.g., "EZR" -> "Ezr")
+            let abbreviation = rawAbbreviation.prefix(1).uppercased() + rawAbbreviation.dropFirst().lowercased()
             let shortName = "\(abbreviation) \(chapter)"
             let bookmark = BookmarkItem(bookName: bookName, chapter: chapter, shortName: shortName)
             bookmarks.append(bookmark)
@@ -197,9 +199,11 @@ class BookmarkManager {
         bookmarks.removeAll { $0.id == currentBookmark.id }
         
         // Create updated bookmark with same ID and color
-        let abbreviation = ScriptureManager.shared.books
+        let rawAbbreviation = ScriptureManager.shared.books
             .first(where: { $0.name == bookName })?
             .abbreviation ?? String(bookName.prefix(3))
+        // Capitalize first letter only (e.g., "EZR" -> "Ezr")
+        let abbreviation = rawAbbreviation.prefix(1).uppercased() + rawAbbreviation.dropFirst().lowercased()
         let shortName = "\(abbreviation) \(chapter)"
         
         let updatedBookmark = BookmarkItem(

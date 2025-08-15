@@ -4,7 +4,6 @@ import UIKit
 
 protocol BookmarkPanelDelegate: AnyObject {
     func bookmarkPanel(_ panel: BookmarkPanelViewController, didSelectBookmark bookmark: BookmarkItem)
-    func bookmarkPanelDidRequestReturn(_ panel: BookmarkPanelViewController)
     func bookmarkPanelDidAddBookmark(_ panel: BookmarkPanelViewController)
 }
 
@@ -73,14 +72,12 @@ class BookmarkPanelViewController: UIViewController {
     
     weak var delegate: BookmarkPanelDelegate?
     private var bookmarks: [BookmarkItem] = []
-    private var showReturnButton = false
     
     // UI Components
     private let containerView = UIView()
     private let scrollView = UIScrollView()
     private let stackView = UIStackView()
     private let addButton = UIButton()
-    private var returnButton: UIButton?
     private var bookmarkButtons: [BookmarkButton] = []
     
     // Panel width
@@ -180,19 +177,6 @@ class BookmarkPanelViewController: UIViewController {
         bookmarkButtons.removeAll()
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         
-        // Add return button if needed
-        if showReturnButton, BookmarkManager.shared.getLastNonBookmarkPosition() != nil {
-            let returnBtn = createReturnButton()
-            returnButton = returnBtn
-            stackView.addArrangedSubview(returnBtn)
-            
-            // Add separator
-            let separator = UIView()
-            separator.backgroundColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 0.2)
-            separator.heightAnchor.constraint(equalToConstant: 1).isActive = true
-            stackView.addArrangedSubview(separator)
-        }
-        
         // Add bookmark buttons
         for bookmark in bookmarks {
             let button = BookmarkButton(bookmark: bookmark)
@@ -209,22 +193,6 @@ class BookmarkPanelViewController: UIViewController {
         }
     }
     
-    private func createReturnButton() -> UIButton {
-        let button = UIButton()
-        button.setTitle("↩", for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: 24)
-        button.setTitleColor(UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 1.0), for: .normal)
-        button.backgroundColor = UIColor(red: 0.95, green: 0.92, blue: 0.88, alpha: 0.5)
-        button.layer.cornerRadius = 4
-        button.heightAnchor.constraint(equalToConstant: 44).isActive = true
-        button.addTarget(self, action: #selector(returnButtonTapped), for: .touchUpInside)
-        return button
-    }
-    
-    func setShowReturnButton(_ show: Bool) {
-        showReturnButton = show
-        updateBookmarkButtons()
-    }
     
     // MARK: - Actions
     
@@ -238,10 +206,6 @@ class BookmarkPanelViewController: UIViewController {
         // Panel will be hidden by the delegate
     }
     
-    @objc private func returnButtonTapped() {
-        delegate?.bookmarkPanelDidRequestReturn(self)
-        // Panel will be hidden by the delegate
-    }
     
     @objc private func bookmarkLongPressed(_ gesture: UILongPressGestureRecognizer) {
         guard gesture.state == .began,
