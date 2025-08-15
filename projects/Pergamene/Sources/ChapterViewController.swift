@@ -259,7 +259,7 @@ class ChapterViewController: UIViewController {
             floatingIndicatorLabel.heightAnchor.constraint(equalToConstant: 20)
         ])
         
-        floatingIndicatorView.layer.zPosition = 10
+        floatingIndicatorView.layer.zPosition = 25
     }
     
     private func setupGradientMask() {
@@ -284,6 +284,9 @@ class ChapterViewController: UIViewController {
         
         topFadeView.layer.addSublayer(topFadeGradient)
         view.addSubview(topFadeView)
+        
+        // Ensure gradient is above bookmark panel
+        topFadeView.layer.zPosition = 20
         
         NSLayoutConstraint.activate([
             topFadeView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -364,8 +367,8 @@ class ChapterViewController: UIViewController {
             bookmarkPanelLeadingConstraint = containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: -70)
             
             NSLayoutConstraint.activate([
-                containerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-                containerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+                containerView.topAnchor.constraint(equalTo: view.topAnchor),
+                containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
                 containerView.widthAnchor.constraint(equalToConstant: 70),
                 bookmarkPanelLeadingConstraint!,
                 
@@ -374,6 +377,9 @@ class ChapterViewController: UIViewController {
                 panelVC.view.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
                 panelVC.view.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
             ])
+            
+            // Set z-order so bookmark panel is below the top gradient
+            containerView.layer.zPosition = 10
         }
     }
     
@@ -407,9 +413,10 @@ class ChapterViewController: UIViewController {
         
         scrollView.panGestureRecognizer.require(toFail: settingsPanGestureRecognizer!)
         
-        // Add tap gesture for bookmark panel (left edge)
-        let bookmarkTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleBookmarkPanelTap(_:)))
-        view.addGestureRecognizer(bookmarkTapGesture)
+        // Add single tap gesture to handle both bookmark panel show/hide
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        tapGesture.cancelsTouchesInView = false
+        view.addGestureRecognizer(tapGesture)
     }
     
     private func setupNotifications() {
@@ -611,6 +618,9 @@ class ChapterViewController: UIViewController {
         if bookmarkPanelVisible {
             hideBookmarkPanel()
         }
+        
+        // Clear current bookmark when using book selector
+        BookmarkManager.shared.clearCurrentBookmark()
         
         let bookVC = BookSelectionViewController()
         bookVC.delegate = self
@@ -977,12 +987,17 @@ extension ChapterViewController: UIGestureRecognizerDelegate {
 
 extension ChapterViewController {
     
-    @objc private func handleBookmarkPanelTap(_ gesture: UITapGestureRecognizer) {
+    @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
         let location = gesture.location(in: view)
         
-        // Check if tap is in the left 50 points of the screen
-        if location.x < 50 {
-            toggleBookmarkPanel()
+        if location.x < 80 {
+            // Left edge tap - toggle bookmark panel (wider zone)
+            if !bookmarkPanelVisible {
+                showBookmarkPanel()
+            }
+        } else if bookmarkPanelVisible && location.x > 80 {
+            // Tap outside panel - hide it
+            hideBookmarkPanel()
         }
     }
     
@@ -1039,8 +1054,9 @@ extension ChapterViewController: BookmarkPanelDelegate {
             scrollPosition: scrollPosition
         )
         
-        // Add bookmark
-        _ = BookmarkManager.shared.addBookmark(bookName: book.name, chapter: currentChapter)
+        // Add bookmark and set as current
+        let bookmark = BookmarkManager.shared.addBookmark(bookName: book.name, chapter: currentChapter)
+        BookmarkManager.shared.setCurrentBookmark(bookmark)
         
         // Reload bookmarks in panel
         panel.loadBookmarks()
@@ -1060,6 +1076,9 @@ extension ChapterViewController: BookmarkPanelDelegate {
                 scrollPosition: scrollPosition
             )
         }
+        
+        // Set as current bookmark
+        BookmarkManager.shared.setCurrentBookmark(bookmark)
         
         // Navigate to bookmark
         navigateToBookmark(bookmark)

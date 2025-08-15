@@ -258,6 +258,12 @@ extension ChapterContainerViewController: UIPageViewControllerDelegate {
         currentBook = book
         currentChapterNumber = currentVC.getCurrentChapter()
         
+        // Update current bookmark if we have one (from swiping)
+        BookmarkManager.shared.updateCurrentBookmarkIfNeeded(
+            bookName: book.name,
+            chapter: currentChapterNumber
+        )
+        
         // Save reading position when chapter changes
         UserDataManager.shared.saveReadingPosition(
             book: book.name,

@@ -146,10 +146,10 @@ class BookmarkPanelViewController: UIViewController {
             containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             containerView.widthAnchor.constraint(equalToConstant: panelWidth),
             
-            // Scroll view - extend to edges
+            // Scroll view - with right padding for bookmark spacing
             scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -5),
+            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 60),
             scrollView.bottomAnchor.constraint(equalTo: addButton.topAnchor, constant: -20),
             
             // Stack view
