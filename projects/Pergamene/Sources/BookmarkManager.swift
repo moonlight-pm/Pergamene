@@ -9,14 +9,16 @@ struct BookmarkItem: Codable, Equatable {
     let shortName: String  // e.g., "Gen 1", "Matt 5"
     var colorHex: String    // Hex color for the ribbon
     let createdAt: Date
+    var orderIndex: Int     // For maintaining stable order
     
-    init(bookName: String, chapter: Int, shortName: String, colorHex: String? = nil) {
+    init(bookName: String, chapter: Int, shortName: String, colorHex: String? = nil, orderIndex: Int = 0) {
         self.id = UUID()
         self.bookName = bookName
         self.chapter = chapter
         self.shortName = shortName
         self.colorHex = colorHex ?? BookmarkColors.randomBrownShade()
         self.createdAt = Date()
+        self.orderIndex = orderIndex
     }
 }
 
@@ -89,7 +91,8 @@ class BookmarkManager {
               let bookmarks = try? JSONDecoder().decode([BookmarkItem].self, from: data) else {
             return []
         }
-        return bookmarks
+        // Return bookmarks sorted by orderIndex for stable positioning
+        return bookmarks.sorted { $0.orderIndex < $1.orderIndex }
     }
     
     func saveBookmarks(_ bookmarks: [BookmarkItem]) {
@@ -110,7 +113,10 @@ class BookmarkManager {
             // Capitalize first letter only (e.g., "EZR" -> "Ezr")
             let abbreviation = rawAbbreviation.prefix(1).uppercased() + rawAbbreviation.dropFirst().lowercased()
             let shortName = "\(abbreviation) \(chapter)"
-            let bookmark = BookmarkItem(bookName: bookName, chapter: chapter, shortName: shortName)
+            
+            // Set orderIndex to be at the end of the list
+            let maxOrder = bookmarks.map { $0.orderIndex }.max() ?? -1
+            let bookmark = BookmarkItem(bookName: bookName, chapter: chapter, shortName: shortName, orderIndex: maxOrder + 1)
             bookmarks.append(bookmark)
             saveBookmarks(bookmarks)
             return bookmark
@@ -132,6 +138,15 @@ class BookmarkManager {
             bookmarks[index].colorHex = colorHex
             saveBookmarks(bookmarks)
         }
+    }
+    
+    func reorderBookmarks(_ reorderedBookmarks: [BookmarkItem]) {
+        // Update order indices based on new positions
+        var updatedBookmarks = reorderedBookmarks
+        for (index, _) in updatedBookmarks.enumerated() {
+            updatedBookmarks[index].orderIndex = index
+        }
+        saveBookmarks(updatedBookmarks)
     }
     
     func bookmarkExists(for bookName: String, chapter: Int) -> Bool {
@@ -190,41 +205,33 @@ class BookmarkManager {
     
     func updateCurrentBookmarkIfNeeded(bookName: String, chapter: Int) {
         // Only update if we have a current bookmark
-        guard var currentBookmark = getCurrentBookmark() else { return }
+        guard let currentBookmark = getCurrentBookmark() else { return }
         
         // Update the bookmark to the new position
         var bookmarks = getBookmarks()
         
-        // Remove the old bookmark
-        bookmarks.removeAll { $0.id == currentBookmark.id }
-        
-        // Create updated bookmark with same ID and color
-        let rawAbbreviation = ScriptureManager.shared.books
-            .first(where: { $0.name == bookName })?
-            .abbreviation ?? String(bookName.prefix(3))
-        // Capitalize first letter only (e.g., "EZR" -> "Ezr")
-        let abbreviation = rawAbbreviation.prefix(1).uppercased() + rawAbbreviation.dropFirst().lowercased()
-        let shortName = "\(abbreviation) \(chapter)"
-        
-        let updatedBookmark = BookmarkItem(
-            bookName: bookName,
-            chapter: chapter,
-            shortName: shortName,
-            colorHex: currentBookmark.colorHex
-        )
-        
-        // Save with preserved ID
-        var mutableBookmark = updatedBookmark
-        mutableBookmark = BookmarkItem(
-            bookName: bookName,
-            chapter: chapter,
-            shortName: shortName,
-            colorHex: currentBookmark.colorHex
-        )
-        
-        bookmarks.append(mutableBookmark)
-        saveBookmarks(bookmarks)
-        setCurrentBookmark(mutableBookmark)
+        // Find the bookmark to update
+        if let index = bookmarks.firstIndex(where: { $0.id == currentBookmark.id }) {
+            // Get abbreviation from the actual book data and capitalize properly
+            let rawAbbreviation = ScriptureManager.shared.books
+                .first(where: { $0.name == bookName })?
+                .abbreviation ?? String(bookName.prefix(3))
+            // Capitalize first letter only (e.g., "EZR" -> "Ezr")
+            let abbreviation = rawAbbreviation.prefix(1).uppercased() + rawAbbreviation.dropFirst().lowercased()
+            let shortName = "\(abbreviation) \(chapter)"
+            
+            // Update the bookmark in place to preserve order
+            bookmarks[index] = BookmarkItem(
+                bookName: bookName,
+                chapter: chapter,
+                shortName: shortName,
+                colorHex: currentBookmark.colorHex,
+                orderIndex: bookmarks[index].orderIndex  // Preserve the order index
+            )
+            
+            saveBookmarks(bookmarks)
+            setCurrentBookmark(bookmarks[index])
+        }
     }
     
     func clearCurrentBookmark() {

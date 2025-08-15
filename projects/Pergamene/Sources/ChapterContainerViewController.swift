@@ -262,33 +262,15 @@ class ChapterContainerViewController: UIViewController {
     
     @objc private func handleChapterSelection(_ notification: Notification) {
         guard let book = notification.userInfo?["book"] as? Book,
-              let chapter = notification.userInfo?["chapter"] as? Int else { return }
-        
-        currentBook = book
-        currentChapterNumber = chapter
-        
-        let chapterVC = createChapterViewController(book: book, chapter: chapter)
-        
-        // Determine navigation direction for smooth animation
-        var direction: UIPageViewController.NavigationDirection = .forward
-        if let currentVC = pageViewController.viewControllers?.first as? ChapterViewController,
-           let currentBook = currentVC.getCurrentBook() {
-            if book.orderIndex < currentBook.orderIndex ||
-               (book.orderIndex == currentBook.orderIndex && chapter < currentVC.getCurrentChapter()) {
-                direction = .reverse
-            }
+              let chapter = notification.userInfo?["chapter"] as? Int else { 
+            print("ERROR: Failed to extract book/chapter from notification")
+            return 
         }
         
-        pageViewController.setViewControllers(
-            [chapterVC],
-            direction: direction,
-            animated: true
-        ) { [weak self] _ in
-            // Force the page view controller to refresh its cache
-            let dataSource = self?.pageViewController.dataSource
-            self?.pageViewController.dataSource = nil
-            self?.pageViewController.dataSource = dataSource
-        }
+        print("handleChapterSelection: \(book.name) chapter \(chapter)")
+        
+        // Use the same approach as navigateToBookmark to ensure proper navigation
+        navigateToBookmark(book: book, chapter: chapter, scrollPosition: 0)
     }
 }
 
