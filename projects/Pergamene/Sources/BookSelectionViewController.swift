@@ -27,6 +27,7 @@ class BookSelectionViewController: UIViewController {
     private let newTestamentLabel = UILabel()
     private let oldTestamentStack = UIStackView()
     private let newTestamentStack = UIStackView()
+    private let dividerView = UIView()
     
     // MARK: - Properties
     
@@ -73,32 +74,39 @@ class BookSelectionViewController: UIViewController {
     }
     
     private func setupTestamentSections() {
-        // Old Testament section
+        // Old Testament section - "After Creation"
         oldTestamentLabel.translatesAutoresizingMaskIntoConstraints = false
-        oldTestamentLabel.text = "Old Testament"
-        oldTestamentLabel.font = UIFont(name: "Cardo-Bold", size: 22) ?? .systemFont(ofSize: 22, weight: .semibold)
+        oldTestamentLabel.text = "After Creation"
+        oldTestamentLabel.font = UIFont(name: "Cardo-Bold", size: 20) ?? .systemFont(ofSize: 20, weight: .semibold)
         oldTestamentLabel.textColor = UIColor(red: 0.2, green: 0.12, blue: 0.05, alpha: 1.0)
+        oldTestamentLabel.textAlignment = .center
         
         oldTestamentStack.translatesAutoresizingMaskIntoConstraints = false
         oldTestamentStack.axis = .vertical
         oldTestamentStack.spacing = 0
         oldTestamentStack.alignment = .fill
         
-        // New Testament section
+        // New Testament section - "After Christ"
         newTestamentLabel.translatesAutoresizingMaskIntoConstraints = false
-        newTestamentLabel.text = "New Testament"
-        newTestamentLabel.font = UIFont(name: "Cardo-Bold", size: 22) ?? .systemFont(ofSize: 22, weight: .semibold)
+        newTestamentLabel.text = "After Christ"
+        newTestamentLabel.font = UIFont(name: "Cardo-Bold", size: 20) ?? .systemFont(ofSize: 20, weight: .semibold)
         newTestamentLabel.textColor = UIColor(red: 0.2, green: 0.12, blue: 0.05, alpha: 1.0)
+        newTestamentLabel.textAlignment = .center
         
         newTestamentStack.translatesAutoresizingMaskIntoConstraints = false
         newTestamentStack.axis = .vertical
         newTestamentStack.spacing = 0
         newTestamentStack.alignment = .fill
         
+        // Divider line
+        dividerView.translatesAutoresizingMaskIntoConstraints = false
+        dividerView.backgroundColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 0.2)
+        
         contentView.addSubview(oldTestamentLabel)
         contentView.addSubview(oldTestamentStack)
         contentView.addSubview(newTestamentLabel)
         contentView.addSubview(newTestamentStack)
+        contentView.addSubview(dividerView)
     }
     
     private func setupConstraints() {
@@ -120,24 +128,34 @@ class BookSelectionViewController: UIViewController {
             contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
             
-            // Old Testament
+            // Two-column layout
+            // Old Testament (After Creation) - Left column
             oldTestamentLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
             oldTestamentLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            oldTestamentLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            oldTestamentLabel.widthAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 0.5, constant: -30),
             
             oldTestamentStack.topAnchor.constraint(equalTo: oldTestamentLabel.bottomAnchor, constant: 12),
             oldTestamentStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            oldTestamentStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            oldTestamentStack.widthAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 0.5, constant: -30),
             
-            // New Testament
-            newTestamentLabel.topAnchor.constraint(equalTo: oldTestamentStack.bottomAnchor, constant: 30),
-            newTestamentLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            // New Testament (After Christ) - Right column
+            newTestamentLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+            newTestamentLabel.leadingAnchor.constraint(equalTo: contentView.centerXAnchor, constant: 10),
             newTestamentLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
             newTestamentStack.topAnchor.constraint(equalTo: newTestamentLabel.bottomAnchor, constant: 12),
-            newTestamentStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            newTestamentStack.leadingAnchor.constraint(equalTo: contentView.centerXAnchor, constant: 10),
             newTestamentStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            newTestamentStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -30)
+            
+            // Content view bottom - use the longer of the two stacks
+            contentView.bottomAnchor.constraint(greaterThanOrEqualTo: oldTestamentStack.bottomAnchor, constant: 30),
+            contentView.bottomAnchor.constraint(greaterThanOrEqualTo: newTestamentStack.bottomAnchor, constant: 30),
+            
+            // Divider
+            dividerView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            dividerView.topAnchor.constraint(equalTo: oldTestamentLabel.topAnchor),
+            dividerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -30),
+            dividerView.widthAnchor.constraint(equalToConstant: 1)
         ])
     }
     
