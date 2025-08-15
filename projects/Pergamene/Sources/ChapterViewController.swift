@@ -28,6 +28,12 @@ class ChapterViewController: UIViewController {
     private var floatingIndicatorVisible = false
     private var floatingIndicatorHeightConstraint: NSLayoutConstraint?
     
+    // Bookmark panel
+    private var bookmarkPanelViewController: BookmarkPanelViewController?
+    private var bookmarkPanelContainerView: UIView?
+    private var bookmarkPanelLeadingConstraint: NSLayoutConstraint?
+    private var bookmarkPanelVisible = false
+    
     // Settings overlay system
     private let settingsOverlayView = UIView()
     private let settingsDimmingView = UIView()
@@ -73,6 +79,7 @@ class ChapterViewController: UIViewController {
         
         setupViews()
         setupSettingsOverlay()
+        setupBookmarkPanel()
         setupGestures()
         setupNotifications()
     }
@@ -251,7 +258,7 @@ class ChapterViewController: UIViewController {
             floatingIndicatorLabel.heightAnchor.constraint(equalToConstant: 20)
         ])
         
-        floatingIndicatorView.layer.zPosition = 10
+        floatingIndicatorView.layer.zPosition = 25
     }
     
     private func setupGradientMask() {
@@ -276,6 +283,9 @@ class ChapterViewController: UIViewController {
         
         topFadeView.layer.addSublayer(topFadeGradient)
         view.addSubview(topFadeView)
+        
+        // Ensure gradient is above bookmark panel
+        topFadeView.layer.zPosition = 20
         
         NSLayoutConstraint.activate([
             topFadeView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -332,6 +342,46 @@ class ChapterViewController: UIViewController {
         settingsDimmingView.layer.zPosition = 50
     }
     
+    private func setupBookmarkPanel() {
+        // Container view for the bookmark panel
+        bookmarkPanelContainerView = UIView()
+        bookmarkPanelContainerView?.translatesAutoresizingMaskIntoConstraints = false
+        bookmarkPanelContainerView?.isHidden = true
+        
+        // Create and configure bookmark panel
+        bookmarkPanelViewController = BookmarkPanelViewController()
+        bookmarkPanelViewController?.delegate = self
+        
+        if let containerView = bookmarkPanelContainerView,
+           let panelVC = bookmarkPanelViewController {
+            view.addSubview(containerView)
+            
+            addChild(panelVC)
+            containerView.addSubview(panelVC.view)
+            panelVC.didMove(toParent: self)
+            
+            panelVC.view.translatesAutoresizingMaskIntoConstraints = false
+            
+            // Setup constraints
+            bookmarkPanelLeadingConstraint = containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: -70)
+            
+            NSLayoutConstraint.activate([
+                containerView.topAnchor.constraint(equalTo: view.topAnchor),
+                containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+                containerView.widthAnchor.constraint(equalToConstant: 70),
+                bookmarkPanelLeadingConstraint!,
+                
+                panelVC.view.topAnchor.constraint(equalTo: containerView.topAnchor),
+                panelVC.view.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+                panelVC.view.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+                panelVC.view.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+            ])
+            
+            // Set z-order so bookmark panel is below the top gradient
+            containerView.layer.zPosition = 10
+        }
+    }
+    
     private func setupSettingsViewController() {
         settingsViewController = SettingsViewController()
         
@@ -361,6 +411,11 @@ class ChapterViewController: UIViewController {
         view.addGestureRecognizer(settingsPanGestureRecognizer!)
         
         scrollView.panGestureRecognizer.require(toFail: settingsPanGestureRecognizer!)
+        
+        // Add single tap gesture to handle both bookmark panel show/hide
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        tapGesture.cancelsTouchesInView = false
+        view.addGestureRecognizer(tapGesture)
     }
     
     private func setupNotifications() {
@@ -423,6 +478,11 @@ class ChapterViewController: UIViewController {
     // MARK: - Settings Gesture Handlers
     
     @objc private func handleSettingsPanGesture(_ gesture: UIPanGestureRecognizer) {
+        // Dismiss bookmark panel when interacting with settings
+        if bookmarkPanelVisible {
+            hideBookmarkPanel()
+        }
+        
         let translation = gesture.translation(in: view)
         let velocity = gesture.velocity(in: view)
         
@@ -553,6 +613,14 @@ class ChapterViewController: UIViewController {
     }
     
     @objc private func bookTitleTapped() {
+        // Dismiss bookmark panel when opening book selection
+        if bookmarkPanelVisible {
+            hideBookmarkPanel()
+        }
+        
+        // Clear current bookmark when using book selector
+        BookmarkManager.shared.clearCurrentBookmark()
+        
         let bookVC = BookSelectionViewController()
         bookVC.delegate = self
         bookVC.modalPresentationStyle = .pageSheet
@@ -713,6 +781,7 @@ extension ChapterViewController {
         let textView = UITextView()
         textView.translatesAutoresizingMaskIntoConstraints = false
         textView.isEditable = false
+        textView.isSelectable = false  // Disable text selection
         textView.isScrollEnabled = false
         textView.backgroundColor = .clear
         textView.textContainerInset = UIEdgeInsets.zero
@@ -846,6 +915,11 @@ extension ChapterViewController: BookSelectionDelegate {
 
 extension ChapterViewController: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        // Dismiss bookmark panel on scroll
+        if bookmarkPanelVisible {
+            hideBookmarkPanel()
+        }
+        
         let yOffset = scrollView.contentOffset.y
         
         // Update floating indicator visibility
@@ -906,5 +980,111 @@ extension ChapterViewController: UIGestureRecognizerDelegate {
             }
         }
         return true
+    }
+}
+
+// MARK: - Bookmark Panel Methods
+
+extension ChapterViewController {
+    
+    @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
+        let location = gesture.location(in: view)
+        
+        if location.x < 80 {
+            // Left edge tap - toggle bookmark panel (wider zone)
+            if !bookmarkPanelVisible {
+                showBookmarkPanel()
+            }
+        } else if bookmarkPanelVisible && location.x > 80 {
+            // Tap outside panel - hide it
+            hideBookmarkPanel()
+        }
+    }
+    
+    private func toggleBookmarkPanel() {
+        if bookmarkPanelVisible {
+            hideBookmarkPanel()
+        } else {
+            showBookmarkPanel()
+        }
+    }
+    
+    private func showBookmarkPanel() {
+        guard let containerView = bookmarkPanelContainerView else { return }
+        
+        // Refresh bookmarks
+        bookmarkPanelViewController?.loadBookmarks()
+        
+        // Show and animate panel
+        containerView.isHidden = false
+        bookmarkPanelLeadingConstraint?.constant = 0
+        
+        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5) {
+            self.view.layoutIfNeeded()
+        } completion: { _ in
+            self.bookmarkPanelVisible = true
+        }
+    }
+    
+    func hideBookmarkPanel() {
+        bookmarkPanelLeadingConstraint?.constant = -70
+        
+        UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {
+            self.view.layoutIfNeeded()
+        } completion: { _ in
+            self.bookmarkPanelContainerView?.isHidden = true
+            self.bookmarkPanelVisible = false
+        }
+    }
+}
+
+// MARK: - BookmarkPanelDelegate
+
+extension ChapterViewController: BookmarkPanelDelegate {
+    
+    func bookmarkPanelDidAddBookmark(_ panel: BookmarkPanelViewController) {
+        guard let book = currentBook else { return }
+        
+        // Add bookmark and set as current
+        let bookmark = BookmarkManager.shared.addBookmark(bookName: book.name, chapter: currentChapter)
+        BookmarkManager.shared.setCurrentBookmark(bookmark)
+        
+        // Reload bookmarks in panel
+        panel.loadBookmarks()
+        
+        // Hide panel after adding
+        hideBookmarkPanel()
+    }
+    
+    func bookmarkPanel(_ panel: BookmarkPanelViewController, didSelectBookmark bookmark: BookmarkItem) {
+        // Set as current bookmark
+        BookmarkManager.shared.setCurrentBookmark(bookmark)
+        
+        // Navigate to bookmark - delegate to parent container instead of handling locally
+        navigateToBookmark(bookmark)
+        
+        // Hide panel
+        hideBookmarkPanel()
+    }
+    
+    private func navigateToBookmark(_ bookmark: BookmarkItem) {
+        // Find the book
+        guard let targetBook = ScriptureManager.shared.books.first(where: { $0.name == bookmark.bookName }) else { 
+            print("ERROR: Could not find book named: \(bookmark.bookName)")
+            return 
+        }
+        
+        // The parent is UIPageViewController, so we need to go up one more level to get ChapterContainerViewController
+        if let pageVC = parent as? UIPageViewController,
+           let containerVC = pageVC.parent as? ChapterContainerViewController {
+            print("Navigating to bookmark: \(bookmark.bookName) \(bookmark.chapter)")
+            containerVC.navigateToBookmark(book: targetBook, chapter: bookmark.chapter, scrollPosition: 0)
+        } else {
+            print("ERROR: Could not find ChapterContainerViewController in hierarchy")
+            print("Parent: \(String(describing: parent))")
+            if let pageVC = parent as? UIPageViewController {
+                print("PageVC parent: \(String(describing: pageVC.parent))")
+            }
+        }
     }
 }

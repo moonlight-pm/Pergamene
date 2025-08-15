@@ -98,8 +98,17 @@ class USFMParser {
         
         do {
             let files = try fileManager.contentsOfDirectory(atPath: path)
-            let usfmFiles = files.filter { $0.hasSuffix(".usfm") || $0.hasSuffix(".USFM") }
-                .sorted()
+            
+            // Filter out unwanted files (front matter, appendix, etc.)
+            let excludedFiles = ["00-FRTeng-Brenton.usfm", "01-INTeng-Brenton.usfm", 
+                                "97-BAKeng-Brenton.usfm", "98-OTHeng-Brenton.usfm",
+                                "99-XXAeng-Brenton.usfm", "100-XXBeng-Brenton.usfm", 
+                                "101-XXCeng-Brenton.usfm"]
+            
+            let usfmFiles = files.filter { file in
+                (file.hasSuffix(".usfm") || file.hasSuffix(".USFM")) && 
+                !excludedFiles.contains(file)
+            }.sorted()
             
             for (index, file) in usfmFiles.enumerated() {
                 let filePath = "\(path)/\(file)"
@@ -134,6 +143,14 @@ class USFMParser {
             // Book name
             if trimmed.starts(with: "\\h ") {
                 bookName = String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
+                
+                // Special case: Remove "(Greek)" from Esther and Daniel
+                bookName = bookName.replacingOccurrences(of: " (Greek)", with: "")
+                
+                // Special case: Rename "Ezra and Nehemiah" to just "Ezra"
+                if bookName == "Ezra and Nehemiah" {
+                    bookName = "Ezra"
+                }
             }
             
             // Book ID (abbreviation)
@@ -179,6 +196,17 @@ class USFMParser {
             chapters.append(Chapter(number: chapter.number, verses: currentVerses))
         }
         
+        // Filter out unwanted books (Appendix-like books)
+        let unwantedBooks = ["Errata", "1844 Preface", "Table of Chapters and Verses in Jeremiah"]
+        if unwantedBooks.contains(bookName) {
+            return nil
+        }
+        
+        // Special case: Limit Ezra to first 10 chapters
+        if bookName == "Ezra" {
+            chapters = Array(chapters.prefix(10))
+        }
+        
         if !bookName.isEmpty && !chapters.isEmpty {
             return Book(
                 name: bookName,
@@ -193,15 +221,94 @@ class USFMParser {
     }
 }
 
-// MARK: - Excel Parser for BSB (placeholder)
+// MARK: - BSB NT Parser from JSON
 
 class BSBParser {
-    func parseExcelFile(at path: String, startIndex: Int) -> [Book] {
-        // Note: Full Excel parsing would require additional libraries
-        // For now, this is a placeholder that would need python or
-        // a separate tool to convert Excel to JSON first
-        print("Note: BSB Excel parsing requires separate preprocessing")
-        return []
+    func parseNTFromJSON(at path: String, startIndex: Int) -> [Book] {
+        var books: [Book] = []
+        
+        // Book abbreviations for NT
+        let abbreviations: [String: String] = [
+            "Matthew": "Matt",
+            "Mark": "Mark",
+            "Luke": "Luke",
+            "John": "John",
+            "Acts": "Acts",
+            "Romans": "Rom",
+            "1 Corinthians": "1Cor",
+            "2 Corinthians": "2Cor",
+            "Galatians": "Gal",
+            "Ephesians": "Eph",
+            "Philippians": "Phil",
+            "Colossians": "Col",
+            "1 Thessalonians": "1Thess",
+            "2 Thessalonians": "2Thess",
+            "1 Timothy": "1Tim",
+            "2 Timothy": "2Tim",
+            "Titus": "Titus",
+            "Philemon": "Phlm",
+            "Hebrews": "Heb",
+            "James": "Jas",
+            "1 Peter": "1Pet",
+            "2 Peter": "2Pet",
+            "1 John": "1John",
+            "2 John": "2John",
+            "3 John": "3John",
+            "Jude": "Jude",
+            "Revelation": "Rev"
+        ]
+        
+        guard let jsonData = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
+            print("Warning: Could not read NT JSON file at \(path)")
+            return []
+        }
+        
+        guard let jsonBooks = try? JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]] else {
+            print("Warning: Could not parse NT JSON")
+            return []
+        }
+        
+        for (index, jsonBook) in jsonBooks.enumerated() {
+            guard let name = jsonBook["name"] as? String,
+                  let jsonChapters = jsonBook["chapters"] as? [[String: Any]] else {
+                continue
+            }
+            
+            var chapters: [Chapter] = []
+            
+            for jsonChapter in jsonChapters {
+                guard let number = jsonChapter["number"] as? Int,
+                      let jsonVerses = jsonChapter["verses"] as? [[String: Any]] else {
+                    continue
+                }
+                
+                var verses: [Verse] = []
+                
+                for jsonVerse in jsonVerses {
+                    guard let verseNumber = jsonVerse["number"] as? Int,
+                          let text = jsonVerse["text"] as? String else {
+                        continue
+                    }
+                    
+                    verses.append(Verse(number: verseNumber, text: text))
+                }
+                
+                chapters.append(Chapter(number: number, verses: verses))
+            }
+            
+            let book = Book(
+                name: name,
+                abbreviation: abbreviations[name] ?? name,
+                testament: "New",
+                orderIndex: startIndex + index,
+                chapters: chapters
+            )
+            
+            books.append(book)
+            print("Parsed: \(book.name)")
+        }
+        
+        return books
     }
 }
 
@@ -221,10 +328,10 @@ print("Parsing Brenton Septuagint...")
 let usfmParser = USFMParser()
 let otBooks = usfmParser.parseDirectory(at: "\(downloadDir)/brenton")
 
-// Parse BSB New Testament (placeholder)
+// Parse BSB New Testament from JSON
 print("Parsing BSB New Testament...")
 let bsbParser = BSBParser()
-let ntBooks = bsbParser.parseExcelFile(at: "\(downloadDir)/bsb.xlsx", startIndex: otBooks.count)
+let ntBooks = bsbParser.parseNTFromJSON(at: "\(downloadDir)/bsb_nt.json", startIndex: otBooks.count)
 
 // Combine all books
 let allBooks = otBooks + ntBooks

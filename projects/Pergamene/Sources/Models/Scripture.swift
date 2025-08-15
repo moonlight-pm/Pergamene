@@ -52,40 +52,20 @@ final class ScriptureManager {
     private func loadScripture() {
         guard !isLoaded else { return }
         
-        var allBooks: [Book] = []
         let decoder = PropertyListDecoder()
         
-        // Load Old Testament
+        // Load all scripture from single file
         if let url = Bundle.main.url(forResource: plistFileName, withExtension: "plist"),
            let data = try? Data(contentsOf: url) {
             do {
-                let otData = try decoder.decode(ScriptureData.self, from: data)
-                allBooks.append(contentsOf: otData.books)
+                scriptureData = try decoder.decode(ScriptureData.self, from: data)
+                isLoaded = true
+                print("Successfully loaded \(scriptureData?.books.count ?? 0) books")
             } catch {
-                // Failed to decode Old Testament scripture data
+                print("Failed to decode scripture data: \(error)")
             }
         } else {
-            // Failed to load Old Testament scripture plist
-        }
-        
-        // Load New Testament
-        if let url = Bundle.main.url(forResource: "NewTestament", withExtension: "plist"),
-           let data = try? Data(contentsOf: url) {
-            do {
-                let ntData = try decoder.decode(ScriptureData.self, from: data)
-                allBooks.append(contentsOf: ntData.books)
-            } catch {
-                // Failed to decode New Testament scripture data
-            }
-        } else {
-            // Failed to load New Testament scripture plist
-        }
-        
-        // Combine into single ScriptureData
-        if !allBooks.isEmpty {
-            scriptureData = ScriptureData(books: allBooks)
-            isLoaded = true
-            
+            print("Failed to load \(plistFileName).plist")
         }
     }
     

@@ -118,13 +118,21 @@ class ChapterContainerViewController: UIViewController {
         if let position = UserDataManager.shared.readingPosition {
             currentBook = ScriptureManager.shared.book(named: position.bookName)
             currentChapterNumber = position.chapter
-        } else {
-            // Default to first available book, chapter 1
+        }
+        
+        // If no saved position or saved book not found, use first available book
+        if currentBook == nil {
             currentBook = ScriptureManager.shared.books.first
             currentChapterNumber = 1
         }
         
-        guard let book = currentBook else { return }
+        guard let book = currentBook else {
+            print("ERROR: No books available in ScriptureManager")
+            print("Available books count: \(ScriptureManager.shared.books.count)")
+            // Still remove splash screen even if we have no content
+            removeSplashScreen()
+            return
+        }
         
         let chapterVC = createChapterViewController(book: book, chapter: currentChapterNumber)
         pageViewController.setViewControllers(
@@ -182,33 +190,95 @@ class ChapterContainerViewController: UIViewController {
         return ScriptureManager.shared.books[currentIndex - 1]
     }
     
+    // MARK: - Public Methods
+    
+    func updateForBookChange(book: Book, chapter: Int) {
+        // Update current state
+        currentBook = book
+        currentChapterNumber = chapter
+        
+        // Remove the old page view controller
+        pageViewController.willMove(toParent: nil)
+        pageViewController.view.removeFromSuperview()
+        pageViewController.removeFromParent()
+        
+        // Create a fresh page view controller to ensure no cached state
+        pageViewController = UIPageViewController(
+            transitionStyle: .scroll,
+            navigationOrientation: .horizontal,
+            options: [.interPageSpacing: 3]
+        )
+        
+        pageViewController.delegate = self
+        pageViewController.dataSource = self
+        
+        // Add the new page view controller
+        addChild(pageViewController)
+        view.addSubview(pageViewController.view)
+        pageViewController.view.frame = view.bounds
+        pageViewController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        pageViewController.didMove(toParent: self)
+        
+        // Create and set the chapter view controller
+        let chapterVC = createChapterViewController(book: book, chapter: chapter)
+        pageViewController.setViewControllers([chapterVC], direction: .forward, animated: false, completion: nil)
+    }
+    
+    /// Navigate to a specific bookmark location
+    /// This method properly invalidates the UIPageViewController cache to ensure correct swipe navigation
+    func navigateToBookmark(book: Book, chapter: Int, scrollPosition: CGFloat) {
+        // Update current state
+        currentBook = book
+        currentChapterNumber = chapter
+        
+        // Create a completely fresh UIPageViewController to clear all cache
+        let newPageViewController = UIPageViewController(
+            transitionStyle: .scroll,
+            navigationOrientation: .horizontal,
+            options: [.interPageSpacing: 3]
+        )
+        
+        newPageViewController.delegate = self
+        newPageViewController.dataSource = self
+        
+        // Remove old page view controller
+        pageViewController.willMove(toParent: nil)
+        pageViewController.view.removeFromSuperview()
+        pageViewController.removeFromParent()
+        
+        // Add new page view controller
+        pageViewController = newPageViewController
+        addChild(pageViewController)
+        view.addSubview(pageViewController.view)
+        pageViewController.view.frame = view.bounds
+        pageViewController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        pageViewController.didMove(toParent: self)
+        
+        // Create new chapter view controller and set it
+        let chapterVC = createChapterViewController(book: book, chapter: chapter)
+        pageViewController.setViewControllers([chapterVC], direction: .forward, animated: true) { _ in
+            // Restore scroll position after the view has loaded
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if let scrollView = chapterVC.view.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
+                    scrollView.setContentOffset(CGPoint(x: 0, y: scrollPosition), animated: true)
+                }
+            }
+        }
+    }
+    
     // MARK: - Notification Handlers
     
     @objc private func handleChapterSelection(_ notification: Notification) {
         guard let book = notification.userInfo?["book"] as? Book,
-              let chapter = notification.userInfo?["chapter"] as? Int else { return }
-        
-        currentBook = book
-        currentChapterNumber = chapter
-        
-        let chapterVC = createChapterViewController(book: book, chapter: chapter)
-        
-        // Determine navigation direction for smooth animation
-        var direction: UIPageViewController.NavigationDirection = .forward
-        if let currentVC = pageViewController.viewControllers?.first as? ChapterViewController,
-           let currentBook = currentVC.getCurrentBook() {
-            if book.orderIndex < currentBook.orderIndex ||
-               (book.orderIndex == currentBook.orderIndex && chapter < currentVC.getCurrentChapter()) {
-                direction = .reverse
-            }
+              let chapter = notification.userInfo?["chapter"] as? Int else { 
+            print("ERROR: Failed to extract book/chapter from notification")
+            return 
         }
         
-        pageViewController.setViewControllers(
-            [chapterVC],
-            direction: direction,
-            animated: true,
-            completion: nil
-        )
+        print("handleChapterSelection: \(book.name) chapter \(chapter)")
+        
+        // Use the same approach as navigateToBookmark to ensure proper navigation
+        navigateToBookmark(book: book, chapter: chapter, scrollPosition: 0)
     }
 }
 
@@ -243,6 +313,12 @@ extension ChapterContainerViewController: UIPageViewControllerDelegate {
         
         currentBook = book
         currentChapterNumber = currentVC.getCurrentChapter()
+        
+        // Update current bookmark if we have one (from swiping)
+        BookmarkManager.shared.updateCurrentBookmarkIfNeeded(
+            bookName: book.name,
+            chapter: currentChapterNumber
+        )
         
         // Save reading position when chapter changes
         UserDataManager.shared.saveReadingPosition(

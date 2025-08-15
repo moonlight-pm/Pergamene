@@ -22,11 +22,11 @@ class BookSelectionViewController: UIViewController {
     
     private let scrollView = UIScrollView()
     private let contentView = UIView()
-    private let titleLabel = UILabel()
     private let oldTestamentLabel = UILabel()
     private let newTestamentLabel = UILabel()
     private let oldTestamentStack = UIStackView()
     private let newTestamentStack = UIStackView()
+    private let dividerView = UIView()
     
     // MARK: - Properties
     
@@ -50,66 +50,66 @@ class BookSelectionViewController: UIViewController {
     
     private func setupViews() {
         setupScrollView()
-        setupTitle()
         setupTestamentSections()
         setupConstraints()
     }
     
     private func setupScrollView() {
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        contentView.translatesAutoresizingMaskIntoConstraints = false
+        // Set the main view background to black for elastic scroll
+        view.backgroundColor = .black
         
-        view.addSubview(titleLabel)
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.backgroundColor = UIColor.parchmentTexture  // Set scroll view background to parchment
+        scrollView.showsVerticalScrollIndicator = true
+        
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.backgroundColor = UIColor.parchmentTexture
+        
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
     }
     
-    private func setupTitle() {
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.text = "Select Book"
-        titleLabel.font = UIFont(name: "Cardo-Bold", size: 28) ?? .systemFont(ofSize: 28, weight: .bold)
-        titleLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0)
-        titleLabel.textAlignment = .center
-    }
     
     private func setupTestamentSections() {
-        // Old Testament section
+        // Old Testament section - "After Creation"
         oldTestamentLabel.translatesAutoresizingMaskIntoConstraints = false
-        oldTestamentLabel.text = "Old Testament"
-        oldTestamentLabel.font = UIFont(name: "Cardo-Bold", size: 22) ?? .systemFont(ofSize: 22, weight: .semibold)
+        oldTestamentLabel.text = "After Creation"
+        oldTestamentLabel.font = UIFont(name: "Cardo-Bold", size: 20) ?? .systemFont(ofSize: 20, weight: .semibold)
         oldTestamentLabel.textColor = UIColor(red: 0.2, green: 0.12, blue: 0.05, alpha: 1.0)
+        oldTestamentLabel.textAlignment = .center
         
         oldTestamentStack.translatesAutoresizingMaskIntoConstraints = false
         oldTestamentStack.axis = .vertical
-        oldTestamentStack.spacing = 0
+        oldTestamentStack.spacing = 5  // Reduced spacing between items
         oldTestamentStack.alignment = .fill
         
-        // New Testament section
+        // New Testament section - "After Christ"
         newTestamentLabel.translatesAutoresizingMaskIntoConstraints = false
-        newTestamentLabel.text = "New Testament"
-        newTestamentLabel.font = UIFont(name: "Cardo-Bold", size: 22) ?? .systemFont(ofSize: 22, weight: .semibold)
+        newTestamentLabel.text = "After Christ"
+        newTestamentLabel.font = UIFont(name: "Cardo-Bold", size: 20) ?? .systemFont(ofSize: 20, weight: .semibold)
         newTestamentLabel.textColor = UIColor(red: 0.2, green: 0.12, blue: 0.05, alpha: 1.0)
+        newTestamentLabel.textAlignment = .center
         
         newTestamentStack.translatesAutoresizingMaskIntoConstraints = false
         newTestamentStack.axis = .vertical
-        newTestamentStack.spacing = 0
+        newTestamentStack.spacing = 5  // Reduced spacing between items
         newTestamentStack.alignment = .fill
+        
+        // Divider line
+        dividerView.translatesAutoresizingMaskIntoConstraints = false
+        dividerView.backgroundColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 0.2)
         
         contentView.addSubview(oldTestamentLabel)
         contentView.addSubview(oldTestamentStack)
         contentView.addSubview(newTestamentLabel)
         contentView.addSubview(newTestamentStack)
+        contentView.addSubview(dividerView)
     }
     
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Title
-            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            
-            // Scroll view
-            scrollView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 20),
+            // Scroll view - now starts at top
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -120,24 +120,34 @@ class BookSelectionViewController: UIViewController {
             contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
             
-            // Old Testament
-            oldTestamentLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+            // Two-column layout
+            // Old Testament (After Creation) - Left column  
+            oldTestamentLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 50),  // Reduced top padding
             oldTestamentLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            oldTestamentLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            oldTestamentLabel.widthAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 0.5, constant: -30),
             
-            oldTestamentStack.topAnchor.constraint(equalTo: oldTestamentLabel.bottomAnchor, constant: 12),
+            oldTestamentStack.topAnchor.constraint(equalTo: oldTestamentLabel.bottomAnchor, constant: 10),
             oldTestamentStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            oldTestamentStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            oldTestamentStack.widthAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 0.5, constant: -30),
             
-            // New Testament
-            newTestamentLabel.topAnchor.constraint(equalTo: oldTestamentStack.bottomAnchor, constant: 30),
-            newTestamentLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            // New Testament (After Christ) - Right column
+            newTestamentLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 50),  // Match reduced OT padding
+            newTestamentLabel.leadingAnchor.constraint(equalTo: contentView.centerXAnchor, constant: 10),
             newTestamentLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
-            newTestamentStack.topAnchor.constraint(equalTo: newTestamentLabel.bottomAnchor, constant: 12),
-            newTestamentStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            newTestamentStack.topAnchor.constraint(equalTo: newTestamentLabel.bottomAnchor, constant: 10),
+            newTestamentStack.leadingAnchor.constraint(equalTo: contentView.centerXAnchor, constant: 10),
             newTestamentStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            newTestamentStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -30)
+            
+            // Content view bottom - use the longer of the two stacks
+            contentView.bottomAnchor.constraint(greaterThanOrEqualTo: oldTestamentStack.bottomAnchor, constant: 30),
+            contentView.bottomAnchor.constraint(greaterThanOrEqualTo: newTestamentStack.bottomAnchor, constant: 30),
+            
+            // Divider
+            dividerView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            dividerView.topAnchor.constraint(equalTo: oldTestamentLabel.topAnchor),
+            dividerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -30),
+            dividerView.widthAnchor.constraint(equalToConstant: 1)
         ])
     }
     
@@ -164,11 +174,11 @@ class BookSelectionViewController: UIViewController {
     private func createBookButton(book: Book) -> UIButton {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        button.heightAnchor.constraint(greaterThanOrEqualToConstant: 36).isActive = true  // Reduced minimum height
         
         // Create attributed string for book name and chapter count
         let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = .left
+        paragraphStyle.alignment = .center
         
         let titleAttributes: [NSAttributedString.Key: Any] = [
             .font: UIFont(name: "Cardo-Regular", size: 18) ?? .systemFont(ofSize: 18),
@@ -189,18 +199,20 @@ class BookSelectionViewController: UIViewController {
         attributedTitle.append(NSAttributedString(string: chapterCount, attributes: subtitleAttributes))
         
         button.setAttributedTitle(attributedTitle, for: .normal)
-        button.titleLabel?.numberOfLines = 2
-        button.contentHorizontalAlignment = .left
+        button.titleLabel?.numberOfLines = 0  // Allow unlimited lines for wrapping
+        button.titleLabel?.lineBreakMode = .byWordWrapping
+        button.contentHorizontalAlignment = .center
         
         // Use newer UIButton configuration for iOS 15+ instead of deprecated contentEdgeInsets
         if #available(iOS 15.0, *) {
             var config = UIButton.Configuration.plain()
             config.attributedTitle = AttributedString(attributedTitle)
-            config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10)
+            config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 8, bottom: 10, trailing: 8)
+            config.titleLineBreakMode = .byWordWrapping
             button.configuration = config
         } else {
             // Fallback for older iOS versions
-            button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 10, bottom: 8, right: 10)
+            button.contentEdgeInsets = UIEdgeInsets(top: 10, left: 8, bottom: 10, right: 8)
         }
         
         // Add touch feedback
