@@ -55,11 +55,11 @@ class BookSelectionViewController: UIViewController {
     }
     
     private func setupScrollView() {
-        // Set the main view background to a neutral color
-        view.backgroundColor = UIColor(red: 0.95, green: 0.94, blue: 0.92, alpha: 1.0)
+        // Set the main view background to black for elastic scroll
+        view.backgroundColor = .black
         
         scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.backgroundColor = .clear
+        scrollView.backgroundColor = UIColor.parchmentTexture  // Set scroll view background to parchment
         scrollView.showsVerticalScrollIndicator = true
         
         contentView.translatesAutoresizingMaskIntoConstraints = false
