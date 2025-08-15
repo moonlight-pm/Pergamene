@@ -1059,7 +1059,7 @@ extension ChapterViewController: BookmarkPanelDelegate {
         // Set as current bookmark
         BookmarkManager.shared.setCurrentBookmark(bookmark)
         
-        // Navigate to bookmark
+        // Navigate to bookmark - delegate to parent container instead of handling locally
         navigateToBookmark(bookmark)
         
         // Hide panel
@@ -1068,30 +1068,22 @@ extension ChapterViewController: BookmarkPanelDelegate {
     
     private func navigateToBookmark(_ bookmark: BookmarkItem) {
         // Find the book
-        guard let targetBook = ScriptureManager.shared.books.first(where: { $0.name == bookmark.bookName }) else { return }
-        
-        // Navigate to the chapter
-        navigateToPosition(bookName: bookmark.bookName, chapter: bookmark.chapter, scrollPosition: 0)
-    }
-    
-    private func navigateToPosition(bookName: String, chapter: Int, scrollPosition: CGFloat) {
-        // Check if we need to change book/chapter
-        if currentBook?.name != bookName || currentChapter != chapter {
-            // Find the book
-            guard let targetBook = ScriptureManager.shared.books.first(where: { $0.name == bookName }) else { return }
-            
-            // Load the new chapter
-            loadChapter(book: targetBook, chapter: chapter)
-            
-            // Notify parent container if needed
-            if let containerVC = parent as? ChapterContainerViewController {
-                containerVC.updateForBookChange(book: targetBook, chapter: chapter)
-            }
+        guard let targetBook = ScriptureManager.shared.books.first(where: { $0.name == bookmark.bookName }) else { 
+            print("ERROR: Could not find book named: \(bookmark.bookName)")
+            return 
         }
         
-        // Restore scroll position after a delay to ensure content is loaded
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.scrollView.setContentOffset(CGPoint(x: 0, y: scrollPosition), animated: true)
+        // The parent is UIPageViewController, so we need to go up one more level to get ChapterContainerViewController
+        if let pageVC = parent as? UIPageViewController,
+           let containerVC = pageVC.parent as? ChapterContainerViewController {
+            print("Navigating to bookmark: \(bookmark.bookName) \(bookmark.chapter)")
+            containerVC.navigateToBookmark(book: targetBook, chapter: bookmark.chapter, scrollPosition: 0)
+        } else {
+            print("ERROR: Could not find ChapterContainerViewController in hierarchy")
+            print("Parent: \(String(describing: parent))")
+            if let pageVC = parent as? UIPageViewController {
+                print("PageVC parent: \(String(describing: pageVC.parent))")
+            }
         }
     }
 }

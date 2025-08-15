@@ -189,11 +189,73 @@ class ChapterContainerViewController: UIViewController {
         currentBook = book
         currentChapterNumber = chapter
         
-        // Create new chapter view controller
-        let chapterVC = createChapterViewController(book: book, chapter: chapter)
+        // Remove the old page view controller
+        pageViewController.willMove(toParent: nil)
+        pageViewController.view.removeFromSuperview()
+        pageViewController.removeFromParent()
         
-        // Update page view controller
+        // Create a fresh page view controller to ensure no cached state
+        pageViewController = UIPageViewController(
+            transitionStyle: .scroll,
+            navigationOrientation: .horizontal,
+            options: [.interPageSpacing: 3]
+        )
+        
+        pageViewController.delegate = self
+        pageViewController.dataSource = self
+        
+        // Add the new page view controller
+        addChild(pageViewController)
+        view.addSubview(pageViewController.view)
+        pageViewController.view.frame = view.bounds
+        pageViewController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        pageViewController.didMove(toParent: self)
+        
+        // Create and set the chapter view controller
+        let chapterVC = createChapterViewController(book: book, chapter: chapter)
         pageViewController.setViewControllers([chapterVC], direction: .forward, animated: false, completion: nil)
+    }
+    
+    /// Navigate to a specific bookmark location
+    /// This method properly invalidates the UIPageViewController cache to ensure correct swipe navigation
+    func navigateToBookmark(book: Book, chapter: Int, scrollPosition: CGFloat) {
+        // Update current state
+        currentBook = book
+        currentChapterNumber = chapter
+        
+        // Create a completely fresh UIPageViewController to clear all cache
+        let newPageViewController = UIPageViewController(
+            transitionStyle: .scroll,
+            navigationOrientation: .horizontal,
+            options: [.interPageSpacing: 3]
+        )
+        
+        newPageViewController.delegate = self
+        newPageViewController.dataSource = self
+        
+        // Remove old page view controller
+        pageViewController.willMove(toParent: nil)
+        pageViewController.view.removeFromSuperview()
+        pageViewController.removeFromParent()
+        
+        // Add new page view controller
+        pageViewController = newPageViewController
+        addChild(pageViewController)
+        view.addSubview(pageViewController.view)
+        pageViewController.view.frame = view.bounds
+        pageViewController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        pageViewController.didMove(toParent: self)
+        
+        // Create new chapter view controller and set it
+        let chapterVC = createChapterViewController(book: book, chapter: chapter)
+        pageViewController.setViewControllers([chapterVC], direction: .forward, animated: true) { _ in
+            // Restore scroll position after the view has loaded
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if let scrollView = chapterVC.view.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
+                    scrollView.setContentOffset(CGPoint(x: 0, y: scrollPosition), animated: true)
+                }
+            }
+        }
     }
     
     // MARK: - Notification Handlers
@@ -220,9 +282,13 @@ class ChapterContainerViewController: UIViewController {
         pageViewController.setViewControllers(
             [chapterVC],
             direction: direction,
-            animated: true,
-            completion: nil
-        )
+            animated: true
+        ) { [weak self] _ in
+            // Force the page view controller to refresh its cache
+            let dataSource = self?.pageViewController.dataSource
+            self?.pageViewController.dataSource = nil
+            self?.pageViewController.dataSource = dataSource
+        }
     }
 }
 
