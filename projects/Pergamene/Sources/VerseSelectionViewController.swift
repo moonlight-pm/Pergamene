@@ -145,7 +145,12 @@ class VerseSelectionViewController: UIViewController {
         shareButton.setTitleColor(UIColor(red: 0.98, green: 0.96, blue: 0.92, alpha: 1.0), for: .normal)
         shareButton.backgroundColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 1.0)
         shareButton.layer.cornerRadius = 8
-        shareButton.contentEdgeInsets = UIEdgeInsets(top: 14, left: 32, bottom: 14, right: 32)
+        
+        // Use configuration instead of deprecated contentEdgeInsets
+        var shareConfig = UIButton.Configuration.plain()
+        shareConfig.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 32, bottom: 14, trailing: 32)
+        shareButton.configuration = shareConfig
+        
         shareButton.addTarget(self, action: #selector(shareTapped), for: .touchUpInside)
         
         // Add subtle shadow

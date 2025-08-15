@@ -39,7 +39,12 @@ class BookmarkButton: UIButton {
         setTitleColor(.white, for: .normal)
         titleLabel?.font = UIFont(name: "Cardo-Bold", size: 14) ?? .systemFont(ofSize: 14, weight: .bold)
         contentHorizontalAlignment = .left
-        contentEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 8)
+        
+        // Use configuration instead of deprecated contentEdgeInsets
+        var config = UIButton.Configuration.plain()
+        config.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8)
+        config.titleAlignment = .leading
+        self.configuration = config
         
         // Add subtle gradient overlay for ribbon effect
         let gradientLayer = CAGradientLayer()
