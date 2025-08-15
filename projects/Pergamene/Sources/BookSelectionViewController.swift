@@ -80,7 +80,7 @@ class BookSelectionViewController: UIViewController {
         
         oldTestamentStack.translatesAutoresizingMaskIntoConstraints = false
         oldTestamentStack.axis = .vertical
-        oldTestamentStack.spacing = 8  // Add consistent spacing between items
+        oldTestamentStack.spacing = 5  // Reduced spacing between items
         oldTestamentStack.alignment = .fill
         
         // New Testament section - "After Christ"
@@ -92,7 +92,7 @@ class BookSelectionViewController: UIViewController {
         
         newTestamentStack.translatesAutoresizingMaskIntoConstraints = false
         newTestamentStack.axis = .vertical
-        newTestamentStack.spacing = 8  // Add consistent spacing between items
+        newTestamentStack.spacing = 5  // Reduced spacing between items
         newTestamentStack.alignment = .fill
         
         // Divider line
@@ -122,20 +122,20 @@ class BookSelectionViewController: UIViewController {
             
             // Two-column layout
             // Old Testament (After Creation) - Left column  
-            oldTestamentLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 60),  // Extra padding from top
+            oldTestamentLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 50),  // Reduced top padding
             oldTestamentLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             oldTestamentLabel.widthAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 0.5, constant: -30),
             
-            oldTestamentStack.topAnchor.constraint(equalTo: oldTestamentLabel.bottomAnchor, constant: 12),
+            oldTestamentStack.topAnchor.constraint(equalTo: oldTestamentLabel.bottomAnchor, constant: 10),
             oldTestamentStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             oldTestamentStack.widthAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 0.5, constant: -30),
             
             // New Testament (After Christ) - Right column
-            newTestamentLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 60),  // Match OT padding
+            newTestamentLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 50),  // Match reduced OT padding
             newTestamentLabel.leadingAnchor.constraint(equalTo: contentView.centerXAnchor, constant: 10),
             newTestamentLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
-            newTestamentStack.topAnchor.constraint(equalTo: newTestamentLabel.bottomAnchor, constant: 12),
+            newTestamentStack.topAnchor.constraint(equalTo: newTestamentLabel.bottomAnchor, constant: 10),
             newTestamentStack.leadingAnchor.constraint(equalTo: contentView.centerXAnchor, constant: 10),
             newTestamentStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
@@ -174,7 +174,7 @@ class BookSelectionViewController: UIViewController {
     private func createBookButton(book: Book) -> UIButton {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.heightAnchor.constraint(greaterThanOrEqualToConstant: 50).isActive = true  // Minimum height, can grow
+        button.heightAnchor.constraint(greaterThanOrEqualToConstant: 36).isActive = true  // Reduced minimum height
         
         // Create attributed string for book name and chapter count
         let paragraphStyle = NSMutableParagraphStyle()

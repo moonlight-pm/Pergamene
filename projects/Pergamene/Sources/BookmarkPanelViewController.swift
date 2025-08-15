@@ -114,6 +114,11 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
         containerView.layer.shadowOpacity = 0.3
         containerView.layer.shadowRadius = 5
         
+        // Add tap gesture to container to close panel when tapping blank area
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleContainerTap(_:)))
+        tapGesture.delegate = self
+        containerView.addGestureRecognizer(tapGesture)
+        
         // Scroll view for bookmarks
         scrollView.showsVerticalScrollIndicator = false
         scrollView.showsHorizontalScrollIndicator = false
@@ -225,7 +230,7 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
     
     @objc private func addButtonTapped() {
         delegate?.bookmarkPanelDidAddBookmark(self)
-        // Panel will be hidden by the delegate
+        // Don't hide panel - let user continue managing bookmarks
     }
     
     @objc private func bookmarkTapped(_ sender: BookmarkButton) {
@@ -235,7 +240,7 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
         } else {
             // In normal mode, navigate to bookmark
             delegate?.bookmarkPanel(self, didSelectBookmark: sender.bookmark)
-            // Panel will be hidden by the delegate
+            // Don't hide panel - let user continue navigating bookmarks
         }
     }
     
@@ -254,6 +259,13 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
                     self.stopWiggleAnimation(for: button)
                 }
             }
+        }
+    }
+    
+    @objc private func handleContainerTap(_ gesture: UITapGestureRecognizer) {
+        // Close the panel when tapping blank area
+        if let delegate = delegate as? ChapterViewController {
+            delegate.hideBookmarkPanel()
         }
     }
     
@@ -407,15 +419,14 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
             let colorName = index < colorNames.count ? colorNames[index] : "Color \(index + 1)"
             
             let action = UIAlertAction(title: colorName, style: .default) { [weak self] _ in
-                BookmarkManager.shared.updateBookmarkColor(bookmark, colorHex: colorHex)
+                // Use random brown for "Brown" option, fixed color for others
+                let finalColorHex = (index == 0) ? BookmarkColors.randomBrownShade() : colorHex
+                BookmarkManager.shared.updateBookmarkColor(bookmark, colorHex: finalColorHex)
                 self?.loadBookmarks()
-                // Dismiss panel after color change
-                if let delegate = self?.delegate as? ChapterViewController {
-                    delegate.hideBookmarkPanel()
-                }
+                // Don't hide panel - let user continue customizing bookmarks
             }
             
-            // Add color indicator
+            // Add color indicator (show the base brown for Brown option)
             let color = BookmarkColors.colorFromHex(colorHex)
             action.setValue(color, forKey: "titleTextColor")
             
@@ -426,10 +437,7 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
         let deleteAction = UIAlertAction(title: "Delete Bookmark", style: .destructive) { [weak self] _ in
             BookmarkManager.shared.deleteBookmark(bookmark)
             self?.loadBookmarks()
-            // Dismiss panel after deletion
-            if let delegate = self?.delegate as? ChapterViewController {
-                delegate.hideBookmarkPanel()
-            }
+            // Don't hide panel - let user continue managing bookmarks
         }
         alertController.addAction(deleteAction)
         
@@ -455,6 +463,31 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
         // Only allow pan gesture in edit mode
         if gestureRecognizer is UIPanGestureRecognizer {
             return isEditMode
+        }
+        return true
+    }
+    
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        // Only allow tap gesture on blank areas (not on buttons or other interactive elements)
+        if gestureRecognizer is UITapGestureRecognizer {
+            let location = touch.location(in: containerView)
+            
+            // Check if tap is on any button or interactive element
+            for subview in [editButton, addButton] + bookmarkButtons {
+                if subview.frame.contains(location) {
+                    return false
+                }
+            }
+            
+            // Check if tap is on scroll view content
+            if scrollView.frame.contains(location) {
+                let scrollLocation = touch.location(in: scrollView)
+                for button in bookmarkButtons {
+                    if button.frame.contains(scrollLocation) {
+                        return false
+                    }
+                }
+            }
         }
         return true
     }
