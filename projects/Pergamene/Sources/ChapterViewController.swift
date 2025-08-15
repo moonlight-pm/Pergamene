@@ -58,7 +58,6 @@ class ChapterViewController: UIViewController {
     private var currentChapter: Int = 1
     private var chapterTextCache: [String: String] = [:]
     private var chapterHeaderTopConstraint: NSLayoutConstraint?
-    private var verseNumberLabels: [UILabel] = []
     
     private var verseNumbersVisible: Bool {
         return UserDefaults.standard.bool(forKey: "ShowVerseNumbers")
@@ -98,6 +97,7 @@ class ChapterViewController: UIViewController {
         super.viewDidLayoutSubviews()
         updateGradientMask()
     }
+    
     
     deinit {
         NotificationCenter.default.removeObserver(self)
@@ -437,8 +437,6 @@ class ChapterViewController: UIViewController {
     
     private func clearExistingContent() {
         versesStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        verseNumberLabels.forEach { $0.removeFromSuperview() }
-        verseNumberLabels.removeAll()
     }
     
     private func getCachedOrCreateText(book: Book, chapter: Int, verses: [Verse]) -> String {
@@ -719,30 +717,7 @@ extension ChapterViewController {
             textView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
         
-        // Position verse numbers after layout
-        if !verses.isEmpty {
-            textView.tag = 999 // Tag to identify this text view
-            
-            textView.setNeedsLayout()
-            textView.layoutIfNeeded()
-            container.setNeedsLayout()
-            container.layoutIfNeeded()
-            
-            DispatchQueue.main.async { [weak self] in
-                // Force layout without accessing layoutManager
-                textView.setNeedsLayout()
-                textView.layoutIfNeeded()
-                self?.positionVerseNumbers(in: textView, container: container, verses: verses)
-                
-                if let visible = self?.verseNumbersVisible {
-                    UIView.animate(withDuration: 0.2) {
-                        self?.verseNumberLabels.forEach { label in
-                            label.alpha = visible ? 1.0 : 0.0
-                        }
-                    }
-                }
-            }
-        }
+        // No need to position verse numbers anymore - they're embedded in the text
         
         return container
     }
@@ -794,31 +769,59 @@ extension ChapterViewController {
         let attributedString = NSMutableAttributedString()
         let textWithoutFirstChar = String(text.dropFirst())
         
+        // Main text attributes
+        let textAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont(name: "Cardo-Regular", size: 20) ?? .systemFont(ofSize: 18),
+            .foregroundColor: UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 1.0),
+            .paragraphStyle: paragraphStyle
+        ]
+        
+        // Verse number attributes (superscript, smaller)
+        let verseNumberAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont(name: "Cardo-Bold", size: 11) ?? .systemFont(ofSize: 11, weight: .bold),
+            .foregroundColor: UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 1.0),
+            .baselineOffset: 9, // Raise the verse numbers higher
+            .paragraphStyle: paragraphStyle
+        ]
+        
         if !verses.isEmpty {
             for (index, verse) in verses.enumerated() {
+                // Skip verse number 1 (since it's at the drop cap)
+                if verse.number > 1 {
+                    if verseNumbersVisible {
+                        // Add space, verse number, space
+                        let spaceBeforeString = NSAttributedString(string: " ", attributes: textAttributes)
+                        attributedString.append(spaceBeforeString)
+                        
+                        let verseNumberString = NSAttributedString(
+                            string: "\(verse.number)",
+                            attributes: verseNumberAttributes
+                        )
+                        attributedString.append(verseNumberString)
+                        
+                        let spaceAfterString = NSAttributedString(string: " ", attributes: textAttributes)
+                        attributedString.append(spaceAfterString)
+                    } else {
+                        // Just add two spaces for consistent spacing
+                        let spacesString = NSAttributedString(string: "  ", attributes: textAttributes)
+                        attributedString.append(spacesString)
+                    }
+                }
+                
+                // Add verse text
                 let verseText = verse.text
                 let adjustedText = index == 0 ? String(verseText.dropFirst()) : verseText
-                
                 let verseAttrString = NSAttributedString(
-                    string: adjustedText + (index < verses.count - 1 ? "  " : ""), // Two spaces between verses
-                    attributes: [
-                        .font: UIFont(name: "Cardo-Regular", size: 20) ?? .systemFont(ofSize: 18),
-                        .foregroundColor: UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 1.0),
-                        .paragraphStyle: paragraphStyle
-                    ]
+                    string: adjustedText, // No extra spaces - verse numbers provide the spacing
+                    attributes: textAttributes
                 )
-                
                 attributedString.append(verseAttrString)
             }
         } else {
             // Fallback if no verse data
             attributedString.append(NSAttributedString(
                 string: textWithoutFirstChar,
-                attributes: [
-                    .font: UIFont(name: "Cardo-Regular", size: 20) ?? .systemFont(ofSize: 18),
-                    .foregroundColor: UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 1.0),
-                    .paragraphStyle: paragraphStyle
-                ]
+                attributes: textAttributes
             ))
         }
         
@@ -831,72 +834,6 @@ extension ChapterViewController {
         return textView
     }
     
-    private func positionVerseNumbers(in textView: UITextView, container: UIView, verses: [Verse]) {
-        verseNumberLabels.forEach { $0.removeFromSuperview() }
-        verseNumberLabels.removeAll()
-        
-        var currentLocation = 0
-        
-        for (index, verse) in verses.enumerated() {
-            // Skip verse 1
-            if verse.number == 1 {
-                currentLocation += index == 0 ? verse.text.count - 1 + 2 : verse.text.count + 2
-                continue
-            }
-            
-            let verseLabel = createVerseNumberLabel(for: verse.number)
-            
-            var searchLocation = currentLocation
-            let textString = textView.text as NSString
-            
-            // Skip leading whitespace
-            while searchLocation < textString.length {
-                let char = textString.character(at: searchLocation)
-                if char != 32 && char != 10 && char != 13 { // Not space, newline, or carriage return
-                    break
-                }
-                searchLocation += 1
-            }
-            
-            // Use TextKit 2 approach - get the frame directly from textView
-            guard searchLocation < textString.length else { continue }
-            
-            // Get the rect for the character position without accessing layoutManager
-            guard let position = textView.position(from: textView.beginningOfDocument, offset: searchLocation),
-                  let range = textView.textRange(from: position, to: position) else { continue }
-            
-            let rect = textView.firstRect(for: range)
-            
-            verseLabel.sizeToFit()
-            
-            let xPosition: CGFloat = rect.origin.x + textView.frame.origin.x - verseLabel.bounds.width - 2
-            let yPosition = rect.origin.y + textView.frame.origin.y - verseLabel.bounds.height + 14
-            
-            verseLabel.frame = CGRect(
-                x: xPosition,
-                y: yPosition,
-                width: verseLabel.bounds.width,
-                height: verseLabel.bounds.height
-            )
-            
-            container.addSubview(verseLabel)
-            verseLabel.layer.zPosition = 100
-            
-            currentLocation += verse.text.count + 2
-        }
-    }
-    
-    private func createVerseNumberLabel(for verseNumber: Int) -> UILabel {
-        let verseLabel = UILabel()
-        verseLabel.text = "\(verseNumber)"
-        verseLabel.font = UIFont(name: "Cardo-Bold", size: 11) ?? .systemFont(ofSize: 11, weight: .bold)
-        verseLabel.textColor = UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 1.0)
-        verseLabel.backgroundColor = .clear
-        verseLabel.alpha = 0 // Start hidden for animation
-        verseLabel.tag = verseNumber
-        verseNumberLabels.append(verseLabel)
-        return verseLabel
-    }
 }
 
 // MARK: - BookSelectionDelegate
