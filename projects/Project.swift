@@ -45,7 +45,6 @@ let project = Project(
                     "UILaunchStoryboardName": "LaunchScreen",
                     "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"],
                     "UIRequiresFullScreen": true,
-                    "UIDeviceFamily": [1],
                     "CFBundleDisplayName": "Pergamene",
                     "CFBundleShortVersionString": "1.0.0",
                     "CFBundleVersion": "1",
@@ -69,7 +68,8 @@ let project = Project(
                     "CODE_SIGN_STYLE": "Automatic",
                     "DEVELOPMENT_TEAM": "$(DEVELOPMENT_TEAM)",
                     "PROVISIONING_PROFILE_SPECIFIER": "",
-                    "TARGETED_DEVICE_FAMILY": "1"
+                    "TARGETED_DEVICE_FAMILY": "1",
+                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES"
                 ]
             )
         ),
