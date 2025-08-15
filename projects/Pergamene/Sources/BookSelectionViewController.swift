@@ -83,7 +83,7 @@ class BookSelectionViewController: UIViewController {
         
         oldTestamentStack.translatesAutoresizingMaskIntoConstraints = false
         oldTestamentStack.axis = .vertical
-        oldTestamentStack.spacing = 0
+        oldTestamentStack.spacing = 8  // Add consistent spacing between items
         oldTestamentStack.alignment = .fill
         
         // New Testament section - "After Christ"
@@ -95,7 +95,7 @@ class BookSelectionViewController: UIViewController {
         
         newTestamentStack.translatesAutoresizingMaskIntoConstraints = false
         newTestamentStack.axis = .vertical
-        newTestamentStack.spacing = 0
+        newTestamentStack.spacing = 8  // Add consistent spacing between items
         newTestamentStack.alignment = .fill
         
         // Divider line
@@ -182,7 +182,7 @@ class BookSelectionViewController: UIViewController {
     private func createBookButton(book: Book) -> UIButton {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        button.heightAnchor.constraint(greaterThanOrEqualToConstant: 50).isActive = true  // Minimum height, can grow
         
         // Create attributed string for book name and chapter count
         let paragraphStyle = NSMutableParagraphStyle()
@@ -207,18 +207,20 @@ class BookSelectionViewController: UIViewController {
         attributedTitle.append(NSAttributedString(string: chapterCount, attributes: subtitleAttributes))
         
         button.setAttributedTitle(attributedTitle, for: .normal)
-        button.titleLabel?.numberOfLines = 2
+        button.titleLabel?.numberOfLines = 0  // Allow unlimited lines for wrapping
+        button.titleLabel?.lineBreakMode = .byWordWrapping
         button.contentHorizontalAlignment = .center
         
         // Use newer UIButton configuration for iOS 15+ instead of deprecated contentEdgeInsets
         if #available(iOS 15.0, *) {
             var config = UIButton.Configuration.plain()
             config.attributedTitle = AttributedString(attributedTitle)
-            config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10)
+            config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 8, bottom: 10, trailing: 8)
+            config.titleLineBreakMode = .byWordWrapping
             button.configuration = config
         } else {
             // Fallback for older iOS versions
-            button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 10, bottom: 8, right: 10)
+            button.contentEdgeInsets = UIEdgeInsets(top: 10, left: 8, bottom: 10, right: 8)
         }
         
         // Add touch feedback
