@@ -118,13 +118,21 @@ class ChapterContainerViewController: UIViewController {
         if let position = UserDataManager.shared.readingPosition {
             currentBook = ScriptureManager.shared.book(named: position.bookName)
             currentChapterNumber = position.chapter
-        } else {
-            // Default to first available book, chapter 1
+        }
+        
+        // If no saved position or saved book not found, use first available book
+        if currentBook == nil {
             currentBook = ScriptureManager.shared.books.first
             currentChapterNumber = 1
         }
         
-        guard let book = currentBook else { return }
+        guard let book = currentBook else {
+            print("ERROR: No books available in ScriptureManager")
+            print("Available books count: \(ScriptureManager.shared.books.count)")
+            // Still remove splash screen even if we have no content
+            removeSplashScreen()
+            return
+        }
         
         let chapterVC = createChapterViewController(book: book, chapter: currentChapterNumber)
         pageViewController.setViewControllers(

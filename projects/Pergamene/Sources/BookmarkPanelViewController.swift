@@ -78,12 +78,16 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
     private let scrollView = UIScrollView()
     private let stackView = UIStackView()
     private let addButton = UIButton()
+    private let editButton = UIButton()
     private var bookmarkButtons: [BookmarkButton] = []
+    
+    // Edit mode
+    private var isEditMode = false
     
     // Drag and drop properties
     private var draggedButton: BookmarkButton?
     private var draggedButtonOriginalIndex: Int?
-    private var placeholderView: UIView?
+    private var lastTargetIndex: Int?
     
     // Panel width
     private let panelWidth: CGFloat = 70
@@ -130,16 +134,27 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
         addButton.layer.borderColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 0.5).cgColor
         addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
         
+        // Edit button styling - using lock icons
+        let lockConfig = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
+        let lockedImage = UIImage(systemName: "lock.fill", withConfiguration: lockConfig)
+        let unlockedImage = UIImage(systemName: "lock.open.fill", withConfiguration: lockConfig)
+        editButton.setImage(lockedImage, for: .normal)
+        editButton.setImage(unlockedImage, for: .selected)
+        editButton.tintColor = UIColor(red: 0.45, green: 0.35, blue: 0.25, alpha: 0.8)
+        editButton.addTarget(self, action: #selector(editButtonTapped), for: .touchUpInside)
+        
         // Layout
         view.addSubview(containerView)
         containerView.addSubview(scrollView)
         scrollView.addSubview(stackView)
         containerView.addSubview(addButton)
+        containerView.addSubview(editButton)
         
         containerView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         stackView.translatesAutoresizingMaskIntoConstraints = false
         addButton.translatesAutoresizingMaskIntoConstraints = false
+        editButton.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
             // Container - extend into safe areas
@@ -148,10 +163,16 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
             containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             containerView.widthAnchor.constraint(equalToConstant: panelWidth),
             
+            // Edit button - positioned at top
+            editButton.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+            editButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 40),
+            editButton.widthAnchor.constraint(equalToConstant: 40),
+            editButton.heightAnchor.constraint(equalToConstant: 40),
+            
             // Scroll view - with right padding for bookmark spacing
             scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -5),
-            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 60),
+            scrollView.topAnchor.constraint(equalTo: editButton.bottomAnchor, constant: 10),
             scrollView.bottomAnchor.constraint(equalTo: addButton.topAnchor, constant: -20),
             
             // Stack view
@@ -187,20 +208,10 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
             let button = BookmarkButton(bookmark: bookmark)
             button.addTarget(self, action: #selector(bookmarkTapped(_:)), for: .touchUpInside)
             
-            // Add long press for customization and drag
-            let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-            longPress.minimumPressDuration = 0.5
-            button.addGestureRecognizer(longPress)
-            
-            // Add pan gesture for dragging
+            // Add pan gesture for dragging (only active in edit mode)
             let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
             panGesture.delegate = self
             button.addGestureRecognizer(panGesture)
-            
-            // Add double tap for customization menu
-            let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
-            doubleTap.numberOfTapsRequired = 2
-            button.addGestureRecognizer(doubleTap)
             
             button.heightAnchor.constraint(equalToConstant: 44).isActive = true
             
@@ -218,13 +229,54 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
     }
     
     @objc private func bookmarkTapped(_ sender: BookmarkButton) {
-        delegate?.bookmarkPanel(self, didSelectBookmark: sender.bookmark)
-        // Panel will be hidden by the delegate
+        if isEditMode {
+            // In edit mode, show customization menu
+            showCustomizationMenu(for: sender.bookmark, sourceView: sender)
+        } else {
+            // In normal mode, navigate to bookmark
+            delegate?.bookmarkPanel(self, didSelectBookmark: sender.bookmark)
+            // Panel will be hidden by the delegate
+        }
+    }
+    
+    @objc private func editButtonTapped() {
+        isEditMode.toggle()
+        editButton.isSelected = isEditMode
+        
+        // Update visual feedback
+        UIView.animate(withDuration: 0.3) {
+            self.bookmarkButtons.forEach { button in
+                button.alpha = self.isEditMode ? 0.8 : 1.0
+                // Add wiggle animation in edit mode
+                if self.isEditMode {
+                    self.startWiggleAnimation(for: button)
+                } else {
+                    self.stopWiggleAnimation(for: button)
+                }
+            }
+        }
+    }
+    
+    private func startWiggleAnimation(for view: UIView) {
+        let wiggleAnimation = CABasicAnimation(keyPath: "transform.rotation")
+        wiggleAnimation.duration = 0.15
+        wiggleAnimation.repeatCount = .infinity
+        wiggleAnimation.autoreverses = true
+        wiggleAnimation.fromValue = -0.02
+        wiggleAnimation.toValue = 0.02
+        view.layer.add(wiggleAnimation, forKey: "wiggle")
+    }
+    
+    private func stopWiggleAnimation(for view: UIView) {
+        view.layer.removeAnimation(forKey: "wiggle")
     }
     
     
-    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        guard let button = gesture.view as? BookmarkButton else { return }
+    
+    @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
+        // Only allow dragging in edit mode
+        guard isEditMode,
+              let button = gesture.view as? BookmarkButton else { return }
         
         switch gesture.state {
         case .began:
@@ -234,7 +286,7 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
             // Update drag position
             let location = gesture.location(in: scrollView)
             updateDragPosition(location)
-        case .ended, .cancelled:
+        case .ended, .cancelled, .failed:
             // End dragging
             endDragging()
         default:
@@ -242,120 +294,106 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
         }
     }
     
-    @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
-        guard let button = gesture.view as? BookmarkButton,
-              draggedButton == button else { return }
-        
-        switch gesture.state {
-        case .changed:
-            let location = gesture.location(in: scrollView)
-            updateDragPosition(location)
-        case .ended, .cancelled:
-            endDragging()
-        default:
-            break
-        }
-    }
-    
-    @objc private func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
-        guard let button = gesture.view as? BookmarkButton else { return }
-        showCustomizationMenu(for: button.bookmark, sourceView: button)
-    }
     
     // MARK: - Drag and Drop
     
     private func beginDragging(_ button: BookmarkButton) {
         draggedButton = button
         draggedButtonOriginalIndex = bookmarkButtons.firstIndex(of: button)
-        
-        // Create placeholder view
-        placeholderView = UIView()
-        placeholderView?.backgroundColor = UIColor.gray.withAlphaComponent(0.3)
-        placeholderView?.layer.cornerRadius = 6
-        placeholderView?.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        lastTargetIndex = draggedButtonOriginalIndex
         
         // Animate button lift
         UIView.animate(withDuration: 0.2) {
-            button.transform = CGAffineTransform(scaleX: 1.1, y: 1.1)
+            button.transform = CGAffineTransform(scaleX: 1.05, y: 1.05)
             button.alpha = 0.8
+            button.layer.shadowOpacity = 0.5
+            button.layer.shadowOffset = CGSize(width: 0, height: 4)
         }
         
-        // Haptic feedback
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+        // Single haptic feedback on pickup
+        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
         impactFeedback.impactOccurred()
     }
     
     private func updateDragPosition(_ location: CGPoint) {
-        guard let draggedButton = draggedButton,
-              let placeholder = placeholderView else { return }
+        guard let draggedButton = draggedButton else { return }
+        
+        // Only process if location is within scroll view bounds
+        let scrollBounds = scrollView.bounds
+        guard location.y >= 0 && location.y <= scrollBounds.height else { return }
+        
+        // Find the current index of the dragged button
+        guard let currentIndex = bookmarkButtons.firstIndex(of: draggedButton) else { return }
         
         // Find the index where the button should be moved
-        var targetIndex = 0
+        var targetIndex = bookmarkButtons.count // Start with "after everything"
+        
         for (index, button) in bookmarkButtons.enumerated() {
             if button == draggedButton { continue }
             
             let buttonFrame = button.convert(button.bounds, to: scrollView)
             if location.y < buttonFrame.midY {
-                targetIndex = index
+                // Adjust target index based on whether it's before or after current position
+                targetIndex = index < currentIndex ? index : index - 1
                 break
             }
-            targetIndex = index + 1
+        }
+        
+        // If targetIndex is still at the end, adjust it
+        if targetIndex >= bookmarkButtons.count {
+            targetIndex = bookmarkButtons.count - 1
         }
         
         // Move the button in the stack view if needed
-        if let currentIndex = stackView.arrangedSubviews.firstIndex(of: draggedButton),
-           targetIndex != currentIndex {
-            
-            stackView.removeArrangedSubview(placeholder)
+        if targetIndex != currentIndex {
+            // Remove from current position
+            bookmarkButtons.remove(at: currentIndex)
             stackView.removeArrangedSubview(draggedButton)
             
-            // Insert placeholder at target position
-            if targetIndex < stackView.arrangedSubviews.count {
-                stackView.insertArrangedSubview(placeholder, at: targetIndex)
-                stackView.insertArrangedSubview(draggedButton, at: targetIndex)
-            } else {
-                stackView.addArrangedSubview(placeholder)
-                stackView.addArrangedSubview(draggedButton)
+            // Insert at new position
+            bookmarkButtons.insert(draggedButton, at: targetIndex)
+            stackView.insertArrangedSubview(draggedButton, at: targetIndex)
+            
+            // Animate the rearrangement
+            UIView.animate(withDuration: 0.3) {
+                self.stackView.layoutIfNeeded()
             }
             
-            // Light haptic feedback for crossing threshold
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-            impactFeedback.impactOccurred()
+            // Only trigger haptic if this is a new position
+            if lastTargetIndex != targetIndex {
+                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                impactFeedback.impactOccurred()
+                lastTargetIndex = targetIndex
+            }
         }
     }
     
     private func endDragging() {
         guard let draggedButton = draggedButton else { return }
         
-        // Remove placeholder
-        placeholderView?.removeFromSuperview()
-        placeholderView = nil
-        
         // Animate button back to normal
         UIView.animate(withDuration: 0.2) {
             draggedButton.transform = .identity
             draggedButton.alpha = 1.0
+            draggedButton.layer.shadowOpacity = 0.3
+            draggedButton.layer.shadowOffset = CGSize(width: 2, height: 1)
         }
         
         // Update the order in the data model
         var reorderedBookmarks: [BookmarkItem] = []
-        for view in stackView.arrangedSubviews {
-            if let button = view as? BookmarkButton {
-                reorderedBookmarks.append(button.bookmark)
-            }
+        for button in bookmarkButtons {
+            reorderedBookmarks.append(button.bookmark)
         }
         
         // Save the new order
         if reorderedBookmarks.count == bookmarks.count {
             bookmarks = reorderedBookmarks
             BookmarkManager.shared.reorderBookmarks(reorderedBookmarks)
-            
-            // Update button array to match new order
-            bookmarkButtons = stackView.arrangedSubviews.compactMap { $0 as? BookmarkButton }
         }
         
         self.draggedButton = nil
         self.draggedButtonOriginalIndex = nil
+        self.lastTargetIndex = nil
     }
     
     // MARK: - Customization Menu
@@ -365,7 +403,7 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
         
         // Color options
         for (index, colorHex) in BookmarkColors.themeColors.enumerated() {
-            let colorNames = ["Brown", "Red", "Blue", "Green", "Purple", "Orange", "Gold", "Pink", "Teal", "Sienna", "Gray"]
+            let colorNames = ["Brown", "Red", "Blue", "Green", "Purple", "Orange", "Gold"]
             let colorName = index < colorNames.count ? colorNames[index] : "Color \(index + 1)"
             
             let action = UIAlertAction(title: colorName, style: .default) { [weak self] _ in
@@ -410,20 +448,13 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
     // MARK: - UIGestureRecognizerDelegate
     
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        // Allow pan gesture to work with long press
-        if gestureRecognizer is UIPanGestureRecognizer && otherGestureRecognizer is UILongPressGestureRecognizer {
-            return true
-        }
-        if gestureRecognizer is UILongPressGestureRecognizer && otherGestureRecognizer is UIPanGestureRecognizer {
-            return true
-        }
         return false
     }
     
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        // Only start pan gesture if we're already dragging
+        // Only allow pan gesture in edit mode
         if gestureRecognizer is UIPanGestureRecognizer {
-            return draggedButton != nil
+            return isEditMode
         }
         return true
     }

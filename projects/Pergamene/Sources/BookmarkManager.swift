@@ -33,21 +33,15 @@ struct BookmarkColors {
         "#6B8E23", // Olive Drab
         "#9370DB", // Medium Purple
         "#FF8C00", // Dark Orange
-        "#DAA520", // Goldenrod
-        "#DB7093", // Pale Violet Red
-        "#5F9EA0", // Cadet Blue
-        "#A0522D", // Sienna
-        "#708090"  // Slate Gray
+        "#DAA520"  // Goldenrod
     ]
     
     // Brown shades for automatic assignment
     static let brownShades = [
         "#8B4513", // Saddle Brown
-        "#A0522D", // Sienna
         "#964B00", // Traditional Brown
         "#654321", // Dark Brown
         "#8B7355", // Burlywood4
-        "#826644", // Raw Umber
         "#7B3F00", // Chocolate
         "#80461B", // Russet
         "#954535", // Chestnut
