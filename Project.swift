@@ -54,8 +54,7 @@ let project = Project(
                         "Cardo-Regular.ttf",
                         "Cardo-Bold.ttf",
                         "Cardo-Italic.ttf",
-                        "UnifrakturMaguntia-Book.ttf",
-                        "MedievalSharp.ttf"
+                        "UnifrakturMaguntia-Book.ttf"
                     ]
                 ]
             ),

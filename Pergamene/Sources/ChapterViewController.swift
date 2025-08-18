@@ -648,10 +648,63 @@ class ChapterViewController: UIViewController {
     }
     
     private func detectVerseAtPoint(_ point: CGPoint, in textView: UITextView?) -> Int {
-        // Simplified implementation - in reality we'd calculate based on text layout
-        // For now, just return verse 1 or a middle verse
-        guard let verses = currentChapterVerses.first else { return 1 }
-        return verses.number
+        guard let textView = textView,
+              !currentChapterVerses.isEmpty else { return 1 }
+        
+        // Get the character index at the touch point
+        let layoutManager = textView.layoutManager
+        let textContainer = textView.textContainer
+        
+        // Convert point to text container coordinates
+        let locationInTextContainer = CGPoint(
+            x: point.x - textView.textContainerInset.left,
+            y: point.y - textView.textContainerInset.top
+        )
+        
+        // Get the character index at this location
+        let characterIndex = layoutManager.characterIndex(
+            for: locationInTextContainer,
+            in: textContainer,
+            fractionOfDistanceBetweenInsertionPoints: nil
+        )
+        
+        // Now we need to determine which verse this character belongs to
+        // We'll iterate through the attributed string to find verse boundaries
+        let attributedText = textView.attributedText!
+        let fullText = attributedText.string
+        
+        // Build a map of character ranges to verse numbers
+        var currentPosition = 0
+        var verseRanges: [(range: NSRange, verseNumber: Int)] = []
+        
+        for verse in currentChapterVerses {
+            // Find the verse text in the full string
+            let verseText = verse.text
+            let searchText = verse.number == 1 ? String(verseText.dropFirst()) : verseText
+            
+            if let range = fullText.range(of: searchText, options: [], range: fullText.index(fullText.startIndex, offsetBy: currentPosition)..<fullText.endIndex) {
+                let nsRange = NSRange(range, in: fullText)
+                verseRanges.append((range: nsRange, verseNumber: verse.number))
+                currentPosition = nsRange.location + nsRange.length
+            }
+        }
+        
+        // Find which verse range contains the character index
+        for (range, verseNumber) in verseRanges {
+            if characterIndex >= range.location && characterIndex < range.location + range.length {
+                return verseNumber
+            }
+        }
+        
+        // If we couldn't find it precisely, estimate based on position
+        if characterIndex < verseRanges.first?.range.location ?? 0 {
+            return 1
+        } else if let lastVerse = verseRanges.last, characterIndex > lastVerse.range.location + lastVerse.range.length {
+            return lastVerse.verseNumber
+        }
+        
+        // Default to verse 1 if we still can't determine
+        return 1
     }
     
     private func presentVerseSelectionSheet() {
