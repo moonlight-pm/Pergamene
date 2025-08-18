@@ -27,6 +27,33 @@ class ChapterContainerViewController: UIViewController {
         setupPageViewController()
         setupNotifications()
         loadLastReadingPosition()
+        
+        // Enable shake gesture detection
+        self.becomeFirstResponder()
+    }
+    
+    override var canBecomeFirstResponder: Bool {
+        return true
+    }
+    
+    override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        if motion == .motionShake {
+            presentIssueReportForm()
+        }
+    }
+    
+    private func presentIssueReportForm() {
+        let issueVC = IssueReportViewController()
+        issueVC.modalPresentationStyle = .pageSheet
+        
+        if let sheet = issueVC.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 20
+            sheet.prefersScrollingExpandsWhenScrolledToEdge = false
+        }
+        
+        present(issueVC, animated: true)
     }
     
     deinit {

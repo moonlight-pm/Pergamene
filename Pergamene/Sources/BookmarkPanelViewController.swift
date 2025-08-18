@@ -96,8 +96,8 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
     private var draggedButtonOriginalIndex: Int?
     private var lastTargetIndex: Int?
     
-    // Panel width
-    private let panelWidth: CGFloat = 70
+    // Panel width - extended to go past drop cap edge
+    private let panelWidth: CGFloat = 95
     
     // MARK: - Lifecycle
     
@@ -207,6 +207,13 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
     func loadBookmarks() {
         bookmarks = BookmarkManager.shared.getBookmarks()
         updateBookmarkButtons()
+        
+        // Reset edit mode when panel opens (auto-lock feature)
+        if UserDefaults.standard.bool(forKey: "BookmarkPanelEditMode") {
+            isEditMode = false
+            editButton.isSelected = false
+            UserDefaults.standard.set(false, forKey: "BookmarkPanelEditMode")
+        }
     }
     
     private func updateBookmarkButtons() {
@@ -254,6 +261,9 @@ class BookmarkPanelViewController: UIViewController, UIGestureRecognizerDelegate
     @objc private func editButtonTapped() {
         isEditMode.toggle()
         editButton.isSelected = isEditMode
+        
+        // Store edit mode state for auto-lock
+        UserDefaults.standard.set(isEditMode, forKey: "BookmarkPanelEditMode")
         
         // Update visual feedback
         UIView.animate(withDuration: 0.3) {

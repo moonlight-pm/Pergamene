@@ -25,6 +25,7 @@ class ChapterViewController: UIViewController {
     // Floating chapter indicator
     private let floatingIndicatorView = UIView()
     private let floatingIndicatorLabel = UILabel()
+    private let floatingIndicatorSettingsButton = UIButton()
     private var floatingIndicatorVisible = false
     private var floatingIndicatorHeightConstraint: NSLayoutConstraint?
     
@@ -238,7 +239,15 @@ class ChapterViewController: UIViewController {
         floatingIndicatorLabel.textColor = UIColor(red: 0.95, green: 0.92, blue: 0.88, alpha: 1.0)
         floatingIndicatorLabel.textAlignment = .center
         
+        // Setup settings button in floating indicator
+        floatingIndicatorSettingsButton.translatesAutoresizingMaskIntoConstraints = false
+        let settingsConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
+        floatingIndicatorSettingsButton.setImage(UIImage(systemName: "gearshape.fill", withConfiguration: settingsConfig), for: .normal)
+        floatingIndicatorSettingsButton.tintColor = UIColor(red: 0.95, green: 0.92, blue: 0.88, alpha: 0.8)
+        floatingIndicatorSettingsButton.addTarget(self, action: #selector(floatingSettingsButtonTapped), for: .touchUpInside)
+        
         floatingIndicatorView.addSubview(floatingIndicatorLabel)
+        floatingIndicatorView.addSubview(floatingIndicatorSettingsButton)
         view.addSubview(floatingIndicatorView)
         
         // Initial height - will be updated in viewSafeAreaInsetsDidChange
@@ -254,8 +263,14 @@ class ChapterViewController: UIViewController {
             // Position label just below safe area
             floatingIndicatorLabel.bottomAnchor.constraint(equalTo: floatingIndicatorView.bottomAnchor, constant: -4),
             floatingIndicatorLabel.leadingAnchor.constraint(equalTo: floatingIndicatorView.leadingAnchor, constant: 20),
-            floatingIndicatorLabel.trailingAnchor.constraint(equalTo: floatingIndicatorView.trailingAnchor, constant: -20),
-            floatingIndicatorLabel.heightAnchor.constraint(equalToConstant: 20)
+            floatingIndicatorLabel.trailingAnchor.constraint(equalTo: floatingIndicatorView.trailingAnchor, constant: -50),
+            floatingIndicatorLabel.heightAnchor.constraint(equalToConstant: 20),
+            
+            // Settings button on the right
+            floatingIndicatorSettingsButton.centerYAnchor.constraint(equalTo: floatingIndicatorLabel.centerYAnchor),
+            floatingIndicatorSettingsButton.trailingAnchor.constraint(equalTo: floatingIndicatorView.trailingAnchor, constant: -15),
+            floatingIndicatorSettingsButton.widthAnchor.constraint(equalToConstant: 30),
+            floatingIndicatorSettingsButton.heightAnchor.constraint(equalToConstant: 30)
         ])
         
         floatingIndicatorView.layer.zPosition = 25
@@ -363,7 +378,7 @@ class ChapterViewController: UIViewController {
             panelVC.view.translatesAutoresizingMaskIntoConstraints = false
             
             // Setup constraints
-            bookmarkPanelLeadingConstraint = containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: -70)
+            bookmarkPanelLeadingConstraint = containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: -95)
             
             NSLayoutConstraint.activate([
                 containerView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -795,6 +810,10 @@ extension ChapterViewController {
         dropCapLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0)
         dropCapLabel.textAlignment = .center
         
+        // Apply blend mode for printed-on-parchment effect
+        dropCapLabel.layer.compositingFilter = "multiplyBlendMode"
+        dropCapLabel.alpha = 0.85
+        
         dropCapContainer.addSubview(dropCapLabel)
         
         NSLayoutConstraint.activate([
@@ -815,6 +834,10 @@ extension ChapterViewController {
         textView.textContainerInset = UIEdgeInsets.zero
         textView.textContainer.lineFragmentPadding = 0
         
+        // Apply blend mode for printed-on-parchment effect
+        textView.layer.compositingFilter = "multiplyBlendMode"
+        textView.alpha = 0.9
+        
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = 10
         paragraphStyle.alignment = .left // Left-aligned for consistent verse number positioning
@@ -822,10 +845,10 @@ extension ChapterViewController {
         let attributedString = NSMutableAttributedString()
         let textWithoutFirstChar = String(text.dropFirst())
         
-        // Main text attributes
+        // Main text attributes - slightly darker for better blend effect
         let textAttributes: [NSAttributedString.Key: Any] = [
             .font: UIFont(name: "Cardo-Regular", size: 20) ?? .systemFont(ofSize: 18),
-            .foregroundColor: UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 1.0),
+            .foregroundColor: UIColor(red: 0.08, green: 0.05, blue: 0.02, alpha: 1.0),
             .paragraphStyle: paragraphStyle
         ]
         
@@ -977,6 +1000,13 @@ extension ChapterViewController: UIGestureRecognizerDelegate {
 
 extension ChapterViewController {
     
+    @objc private func floatingSettingsButtonTapped() {
+        // Open settings from floating indicator
+        if !settingsIsVisible {
+            animateShowSettings()
+        }
+    }
+    
     @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
         let location = gesture.location(in: view)
         
@@ -1017,7 +1047,7 @@ extension ChapterViewController {
     }
     
     func hideBookmarkPanel() {
-        bookmarkPanelLeadingConstraint?.constant = -70
+        bookmarkPanelLeadingConstraint?.constant = -95
         
         UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {
             self.view.layoutIfNeeded()
