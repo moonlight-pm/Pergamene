@@ -238,12 +238,17 @@ class ChapterViewController: UIViewController {
         floatingIndicatorLabel.font = UIFont(name: "Cardo-Regular", size: 14) ?? .systemFont(ofSize: 14)
         floatingIndicatorLabel.textColor = UIColor(red: 0.95, green: 0.92, blue: 0.88, alpha: 1.0)
         floatingIndicatorLabel.textAlignment = .center
+        floatingIndicatorLabel.isUserInteractionEnabled = true
         
-        // Setup settings button in floating indicator
+        // Add tap gesture to floating indicator label
+        let floatingLabelTap = UITapGestureRecognizer(target: self, action: #selector(floatingLabelTapped))
+        floatingIndicatorLabel.addGestureRecognizer(floatingLabelTap)
+        
+        // Setup settings button in floating indicator - very subtle
         floatingIndicatorSettingsButton.translatesAutoresizingMaskIntoConstraints = false
-        let settingsConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
-        floatingIndicatorSettingsButton.setImage(UIImage(systemName: "gearshape.fill", withConfiguration: settingsConfig), for: .normal)
-        floatingIndicatorSettingsButton.tintColor = UIColor(red: 0.95, green: 0.92, blue: 0.88, alpha: 0.8)
+        let settingsConfig = UIImage.SymbolConfiguration(pointSize: 14, weight: .light)
+        floatingIndicatorSettingsButton.setImage(UIImage(systemName: "gearshape", withConfiguration: settingsConfig), for: .normal)
+        floatingIndicatorSettingsButton.tintColor = UIColor(red: 0.95, green: 0.92, blue: 0.88, alpha: 0.3)
         floatingIndicatorSettingsButton.addTarget(self, action: #selector(floatingSettingsButtonTapped), for: .touchUpInside)
         
         floatingIndicatorView.addSubview(floatingIndicatorLabel)
@@ -1005,6 +1010,11 @@ extension ChapterViewController {
         if !settingsIsVisible {
             animateShowSettings()
         }
+    }
+    
+    @objc private func floatingLabelTapped() {
+        // Open book selection when tapping on floating indicator label
+        bookTitleTapped()
     }
     
     @objc private func handleTap(_ gesture: UITapGestureRecognizer) {

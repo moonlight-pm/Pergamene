@@ -60,7 +60,7 @@ class BookSelectionViewController: UIViewController {
         
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.backgroundColor = UIColor.parchmentTexture  // Set scroll view background to parchment
-        scrollView.showsVerticalScrollIndicator = true
+        scrollView.showsVerticalScrollIndicator = false  // Hide scrollbar for cleaner look
         
         contentView.translatesAutoresizingMaskIntoConstraints = false
         contentView.backgroundColor = UIColor.parchmentTexture
