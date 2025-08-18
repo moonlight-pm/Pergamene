@@ -177,14 +177,16 @@ class ChapterViewController: UIViewController {
         chapterHeaderView.addGestureRecognizer(tapGesture)
         
         bookLabel.translatesAutoresizingMaskIntoConstraints = false
-        bookLabel.font = UIFont(name: "Cardo-Bold", size: 26) ?? .systemFont(ofSize: 24, weight: .semibold)
-        bookLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0)
+        let titleAttributes = UIFont.pergameneTitleAttributes(size: 26)
+        bookLabel.font = titleAttributes[.font] as? UIFont
+        bookLabel.textColor = titleAttributes[.foregroundColor] as? UIColor
         bookLabel.textAlignment = .center
         bookLabel.isUserInteractionEnabled = true
         
         chapterLabel.translatesAutoresizingMaskIntoConstraints = false
-        chapterLabel.font = UIFont(name: "Cardo-Regular", size: 20) ?? .systemFont(ofSize: 18)
-        chapterLabel.textColor = UIColor(red: 0.25, green: 0.18, blue: 0.12, alpha: 1.0)
+        let chapterAttributes = UIFont.pergameneTextAttributes(size: 20, color: UIColor(red: 0.2, green: 0.15, blue: 0.1, alpha: 1.0))
+        chapterLabel.font = chapterAttributes[.font] as? UIFont
+        chapterLabel.textColor = chapterAttributes[.foregroundColor] as? UIColor
         chapterLabel.textAlignment = .center
         
         contentView.addSubview(chapterHeaderView)
@@ -798,7 +800,7 @@ extension ChapterViewController {
     private func createDropCap(with character: String) -> UIView {
         let dropCapContainer = UIView()
         dropCapContainer.translatesAutoresizingMaskIntoConstraints = false
-        dropCapContainer.backgroundColor = UIColor(red: 0.82, green: 0.72, blue: 0.58, alpha: 0.5)
+        dropCapContainer.backgroundColor = UIColor(red: 0.82, green: 0.72, blue: 0.58, alpha: 0.3)  // More transparent background
         dropCapContainer.layer.borderColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 1.0).cgColor
         dropCapContainer.layer.borderWidth = 2
         
@@ -812,12 +814,17 @@ extension ChapterViewController {
                         UIFont(name: "Unifraktur Maguntia", size: 60)
         dropCapLabel.font = gothicFont ?? UIFont(name: "Cardo-Bold", size: 60) ?? .systemFont(ofSize: 60, weight: .bold)
         
-        dropCapLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0)
+        dropCapLabel.textColor = UIColor(red: 0.12, green: 0.08, blue: 0.05, alpha: 0.9)  // Very dark brown
         dropCapLabel.textAlignment = .center
         
-        // Apply blend mode for printed-on-parchment effect
-        dropCapLabel.layer.compositingFilter = "multiplyBlendMode"
-        dropCapLabel.alpha = 0.85
+        // Remove blend mode and use very dark colors instead
+        dropCapLabel.alpha = 1.0
+        
+        // Add subtle inset shadow to make it look pressed into parchment
+        dropCapLabel.layer.shadowColor = UIColor(red: 1.0, green: 0.98, blue: 0.94, alpha: 0.5).cgColor
+        dropCapLabel.layer.shadowOffset = CGSize(width: 0.5, height: 0.5)
+        dropCapLabel.layer.shadowOpacity = 1.0
+        dropCapLabel.layer.shadowRadius = 0.5
         
         dropCapContainer.addSubview(dropCapLabel)
         
@@ -839,9 +846,14 @@ extension ChapterViewController {
         textView.textContainerInset = UIEdgeInsets.zero
         textView.textContainer.lineFragmentPadding = 0
         
-        // Apply blend mode for printed-on-parchment effect
-        textView.layer.compositingFilter = "multiplyBlendMode"
-        textView.alpha = 0.9
+        // Use darker text with subtle shadow for depth
+        textView.alpha = 1.0
+        
+        // Very subtle light shadow to create "printed" effect
+        textView.layer.shadowColor = UIColor(red: 1.0, green: 0.98, blue: 0.94, alpha: 0.3).cgColor
+        textView.layer.shadowOffset = CGSize(width: 0.3, height: 0.3)
+        textView.layer.shadowOpacity = 1.0
+        textView.layer.shadowRadius = 0.3
         
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = 10
@@ -850,17 +862,13 @@ extension ChapterViewController {
         let attributedString = NSMutableAttributedString()
         let textWithoutFirstChar = String(text.dropFirst())
         
-        // Main text attributes - slightly darker for better blend effect
-        let textAttributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont(name: "Cardo-Regular", size: 20) ?? .systemFont(ofSize: 18),
-            .foregroundColor: UIColor(red: 0.08, green: 0.05, blue: 0.02, alpha: 1.0),
-            .paragraphStyle: paragraphStyle
-        ]
+        // Use generalized text attributes
+        let textAttributes = UIFont.pergameneTextAttributes(size: 22, paragraphStyle: paragraphStyle)
         
-        // Verse number attributes (superscript, smaller)
+        // Original verse number attributes with baseline offset
         let verseNumberAttributes: [NSAttributedString.Key: Any] = [
             .font: UIFont(name: "Cardo-Bold", size: 11) ?? .systemFont(ofSize: 11, weight: .bold),
-            .foregroundColor: UIColor(red: 0.05, green: 0.03, blue: 0.01, alpha: 1.0),
+            .foregroundColor: UIColor(red: 0.06, green: 0.04, blue: 0.02, alpha: 0.75),
             .baselineOffset: 9, // Raise the verse numbers higher
             .paragraphStyle: paragraphStyle
         ]
@@ -870,7 +878,7 @@ extension ChapterViewController {
                 // Skip verse number 1 (since it's at the drop cap)
                 if verse.number > 1 {
                     if verseNumbersVisible {
-                        // Add space, verse number, space
+                        // Add space, verse number, then text (original approach)
                         let spaceBeforeString = NSAttributedString(string: " ", attributes: textAttributes)
                         attributedString.append(spaceBeforeString)
                         
@@ -880,6 +888,7 @@ extension ChapterViewController {
                         )
                         attributedString.append(verseNumberString)
                         
+                        // Just add regular space after verse number
                         let spaceAfterString = NSAttributedString(string: " ", attributes: textAttributes)
                         attributedString.append(spaceAfterString)
                     } else {
@@ -892,8 +901,9 @@ extension ChapterViewController {
                 // Add verse text
                 let verseText = verse.text
                 let adjustedText = index == 0 ? String(verseText.dropFirst()) : verseText
+                
                 let verseAttrString = NSAttributedString(
-                    string: adjustedText, // No extra spaces - verse numbers provide the spacing
+                    string: adjustedText,
                     attributes: textAttributes
                 )
                 attributedString.append(verseAttrString)

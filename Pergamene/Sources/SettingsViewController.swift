@@ -93,8 +93,9 @@ class SettingsViewController: UIViewController {
         New Testament: Berean Standard Bible
         """
         bibleTextsLabel.text = textsInfo
-        bibleTextsLabel.font = UIFont(name: "Cardo-Regular", size: 14) ?? .systemFont(ofSize: 14)
-        bibleTextsLabel.textColor = UIColor(red: 0.25, green: 0.18, blue: 0.12, alpha: 1.0)
+        let textLabelAttributes = UIFont.pergameneTextAttributes(size: 14, color: UIColor(red: 0.25, green: 0.18, blue: 0.12, alpha: 1.0))
+        bibleTextsLabel.font = textLabelAttributes[.font] as? UIFont
+        bibleTextsLabel.textColor = textLabelAttributes[.foregroundColor] as? UIColor
         bibleTextsLabel.textAlignment = .center
         bibleTextsLabel.numberOfLines = 0
         
@@ -105,7 +106,8 @@ class SettingsViewController: UIViewController {
     private func setupInstructionsButton() {
         instructionsButton.translatesAutoresizingMaskIntoConstraints = false
         instructionsButton.setTitle("How to Use", for: .normal)
-        instructionsButton.titleLabel?.font = UIFont(name: "Cardo-Regular", size: 16) ?? .systemFont(ofSize: 16)
+        let buttonAttributes = UIFont.pergameneTextAttributes(size: 16)
+        instructionsButton.titleLabel?.font = buttonAttributes[.font] as? UIFont
         instructionsButton.tintColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 1.0)
         instructionsButton.addTarget(self, action: #selector(instructionsTapped), for: .touchUpInside)
         
@@ -115,8 +117,9 @@ class SettingsViewController: UIViewController {
     private func setupVerseNumbersSetting() {
         verseNumbersLabel.translatesAutoresizingMaskIntoConstraints = false
         verseNumbersLabel.text = "Show Verse Numbers"
-        verseNumbersLabel.font = UIFont(name: "Cardo-Regular", size: 18) ?? .systemFont(ofSize: 18)
-        verseNumbersLabel.textColor = UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0)
+        let settingsLabelAttributes = UIFont.pergameneTextAttributes(size: 18, color: UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0))
+        verseNumbersLabel.font = settingsLabelAttributes[.font] as? UIFont
+        verseNumbersLabel.textColor = settingsLabelAttributes[.foregroundColor] as? UIColor
         
         verseNumbersSwitch.translatesAutoresizingMaskIntoConstraints = false
         verseNumbersSwitch.onTintColor = UIColor(red: 0.45, green: 0.35, blue: 0.25, alpha: 1.0)
@@ -227,8 +230,9 @@ class InstructionsViewController: UIViewController {
         // Title
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.text = "How to Use Pergamene"
-        titleLabel.font = UIFont(name: "Cardo-Bold", size: 24) ?? .systemFont(ofSize: 24, weight: .bold)
-        titleLabel.textColor = UIColor(red: 0.15, green: 0.1, blue: 0.05, alpha: 1.0)
+        let howToTitleAttributes = UIFont.pergameneTitleAttributes(size: 24)
+        titleLabel.font = howToTitleAttributes[.font] as? UIFont
+        titleLabel.textColor = howToTitleAttributes[.foregroundColor] as? UIColor
         titleLabel.textAlignment = .center
         
         // Instructions
@@ -247,8 +251,9 @@ class InstructionsViewController: UIViewController {
         """
         
         instructionsLabel.text = instructions
-        instructionsLabel.font = UIFont(name: "Cardo-Regular", size: 16) ?? .systemFont(ofSize: 16)
-        instructionsLabel.textColor = UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0)
+        let instructionsAttributes = UIFont.pergameneTextAttributes(size: 16, color: UIColor(red: 0.1, green: 0.07, blue: 0.04, alpha: 1.0))
+        instructionsLabel.font = instructionsAttributes[.font] as? UIFont
+        instructionsLabel.textColor = instructionsAttributes[.foregroundColor] as? UIColor
         instructionsLabel.numberOfLines = 0
         instructionsLabel.textAlignment = .left
         
