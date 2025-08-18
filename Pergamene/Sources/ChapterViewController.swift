@@ -857,7 +857,10 @@ extension ChapterViewController {
         
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = 10
-        paragraphStyle.alignment = .left // Left-aligned for consistent verse number positioning
+        paragraphStyle.alignment = .justified // Justified text with hyphenation
+        paragraphStyle.hyphenationFactor = 0.9 // Enable hyphenation (0.0 = off, 1.0 = maximum)
+        paragraphStyle.lineBreakMode = .byWordWrapping
+        paragraphStyle.lineBreakStrategy = .standard // iOS 14+ line breaking strategy
         
         let attributedString = NSMutableAttributedString()
         let textWithoutFirstChar = String(text.dropFirst())
@@ -886,52 +889,32 @@ extension ChapterViewController {
                 
                 if verse.number > 1 {
                     if verseNumbersVisible {
-                        // Add space before verse number
+                        // Simple approach: just add space, verse number, space, then text
                         let spaceBeforeString = NSAttributedString(string: " ", attributes: textAttributes)
                         attributedString.append(spaceBeforeString)
                         
-                        // Add verse number
                         let verseNumberString = NSAttributedString(
                             string: "\(verse.number)",
                             attributes: verseNumberAttributes
                         )
                         attributedString.append(verseNumberString)
                         
-                        // Use non-breaking space after verse number to keep it with the first word
-                        let nonBreakingSpace = NSAttributedString(string: "\u{00A0}", attributes: textAttributes)
-                        attributedString.append(nonBreakingSpace)
-                        
-                        // For the verse text, replace the first space with non-breaking space
-                        // to keep at least the first word with the verse number
-                        var modifiedText = adjustedText
-                        if let firstSpaceIndex = modifiedText.firstIndex(of: " ") {
-                            modifiedText.replaceSubrange(firstSpaceIndex...firstSpaceIndex, with: "\u{00A0}")
-                        }
-                        
-                        let verseAttrString = NSAttributedString(
-                            string: modifiedText,
-                            attributes: textAttributes
-                        )
-                        attributedString.append(verseAttrString)
+                        // Non-breaking space after verse number to keep it with first word
+                        let spaceAfterString = NSAttributedString(string: "\u{00A0}", attributes: textAttributes)
+                        attributedString.append(spaceAfterString)
                     } else {
                         // Just add two spaces for consistent spacing
                         let spacesString = NSAttributedString(string: "  ", attributes: textAttributes)
                         attributedString.append(spacesString)
-                        
-                        let verseAttrString = NSAttributedString(
-                            string: adjustedText,
-                            attributes: textAttributes
-                        )
-                        attributedString.append(verseAttrString)
                     }
-                } else {
-                    // Verse 1 - just add the text
-                    let verseAttrString = NSAttributedString(
-                        string: adjustedText,
-                        attributes: textAttributes
-                    )
-                    attributedString.append(verseAttrString)
                 }
+                
+                // Add the verse text simply
+                let verseAttrString = NSAttributedString(
+                    string: adjustedText,
+                    attributes: textAttributes
+                )
+                attributedString.append(verseAttrString)
             }
         } else {
             // Fallback if no verse data

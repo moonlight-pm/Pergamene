@@ -18,7 +18,8 @@ extension UIFont {
             .font: pergameneTextFont(size: size),
             .foregroundColor: color ?? UIColor(red: 0.07, green: 0.05, blue: 0.03, alpha: 0.98),
             .strokeWidth: -0.2, // Very subtle stroke for weight without blur
-            .strokeColor: color ?? UIColor(red: 0.07, green: 0.05, blue: 0.03, alpha: 0.98)
+            .strokeColor: color ?? UIColor(red: 0.07, green: 0.05, blue: 0.03, alpha: 0.98),
+            .languageIdentifier: "en-US" // Set language for proper hyphenation
         ]
         
         if let paragraphStyle = paragraphStyle {
