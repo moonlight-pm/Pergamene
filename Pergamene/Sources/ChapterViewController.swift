@@ -865,48 +865,73 @@ extension ChapterViewController {
         // Use generalized text attributes
         let textAttributes = UIFont.pergameneTextAttributes(size: 22, paragraphStyle: paragraphStyle)
         
-        // Original verse number attributes with baseline offset
+        // Use SAME font and size as text to guarantee consistent line height
+        let textFont = textAttributes[.font] as? UIFont ?? UIFont.systemFont(ofSize: 22)
+        
+        // Use exact same font but lighter weight and smaller visual appearance
         let verseNumberAttributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont(name: "Cardo-Bold", size: 11) ?? .systemFont(ofSize: 11, weight: .bold),
-            .foregroundColor: UIColor(red: 0.06, green: 0.04, blue: 0.02, alpha: 0.75),
-            .baselineOffset: 9, // Raise the verse numbers higher
-            .paragraphStyle: paragraphStyle
+            .font: textFont, // Same font and size as text
+            .foregroundColor: UIColor(red: 0.06, green: 0.04, blue: 0.02, alpha: 0.35), // Much lighter
+            .kern: -1.0, // Negative kerning to make it appear smaller
+            .expansion: -0.3, // Compress horizontally significantly
+            .paragraphStyle: paragraphStyle // Use same paragraph style as text
         ]
         
         if !verses.isEmpty {
             for (index, verse) in verses.enumerated() {
                 // Skip verse number 1 (since it's at the drop cap)
+                // Add verse text
+                let verseText = verse.text
+                let adjustedText = index == 0 ? String(verseText.dropFirst()) : verseText
+                
                 if verse.number > 1 {
                     if verseNumbersVisible {
-                        // Add space, verse number, then text (original approach)
+                        // Add space before verse number
                         let spaceBeforeString = NSAttributedString(string: " ", attributes: textAttributes)
                         attributedString.append(spaceBeforeString)
                         
+                        // Add verse number
                         let verseNumberString = NSAttributedString(
                             string: "\(verse.number)",
                             attributes: verseNumberAttributes
                         )
                         attributedString.append(verseNumberString)
                         
-                        // Just add regular space after verse number
-                        let spaceAfterString = NSAttributedString(string: " ", attributes: textAttributes)
-                        attributedString.append(spaceAfterString)
+                        // Use non-breaking space after verse number to keep it with the first word
+                        let nonBreakingSpace = NSAttributedString(string: "\u{00A0}", attributes: textAttributes)
+                        attributedString.append(nonBreakingSpace)
+                        
+                        // For the verse text, replace the first space with non-breaking space
+                        // to keep at least the first word with the verse number
+                        var modifiedText = adjustedText
+                        if let firstSpaceIndex = modifiedText.firstIndex(of: " ") {
+                            modifiedText.replaceSubrange(firstSpaceIndex...firstSpaceIndex, with: "\u{00A0}")
+                        }
+                        
+                        let verseAttrString = NSAttributedString(
+                            string: modifiedText,
+                            attributes: textAttributes
+                        )
+                        attributedString.append(verseAttrString)
                     } else {
                         // Just add two spaces for consistent spacing
                         let spacesString = NSAttributedString(string: "  ", attributes: textAttributes)
                         attributedString.append(spacesString)
+                        
+                        let verseAttrString = NSAttributedString(
+                            string: adjustedText,
+                            attributes: textAttributes
+                        )
+                        attributedString.append(verseAttrString)
                     }
+                } else {
+                    // Verse 1 - just add the text
+                    let verseAttrString = NSAttributedString(
+                        string: adjustedText,
+                        attributes: textAttributes
+                    )
+                    attributedString.append(verseAttrString)
                 }
-                
-                // Add verse text
-                let verseText = verse.text
-                let adjustedText = index == 0 ? String(verseText.dropFirst()) : verseText
-                
-                let verseAttrString = NSAttributedString(
-                    string: adjustedText,
-                    attributes: textAttributes
-                )
-                attributedString.append(verseAttrString)
             }
         } else {
             // Fallback if no verse data
